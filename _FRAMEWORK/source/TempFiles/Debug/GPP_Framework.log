@@ -1,0 +1,31 @@
+﻿  stdafx.cpp
+  SDLDebugRenderer2D.cpp
+  App_NavigationMeshGeneration.cpp
+  EBehaviorTree.cpp
+  EFiniteStateMachine.cpp
+  EGraphConnectionTypes.cpp
+  EGraphNodeTypes.cpp
+  EInfluenceMap.cpp
+  EGraphEditor.cpp
+  EGraphRenderer.cpp
+  ENavGraph.cpp
+  EGeometry2DTypes.cpp
+  EInputManager.cpp
+  EMatrix2x3.cpp
+  ERigidBodyBox2D.cpp
+  EPhysicsWorldBox2D.cpp
+  ECamera2D.cpp
+  ERenderingTypes.cpp
+  SDLFrame.cpp
+  ETimer_SDL.cpp
+  EImmediateUI.cpp
+  Generating Code...
+  Compiling...
+  SDLWindow.cpp
+  gl3w.c
+  main.cpp
+  NavigationColliderElement.cpp
+  Generating Code...
+  GPP_Framework.vcxproj -> D:\Github\NavigationMeshGeneration\_FRAMEWORK\bin\Debug\GPP_Framework.exe
+  D:\Github\NavigationMeshGeneration\_FRAMEWORK\source\..\lib\SDL2.dll
+  1 File(s) copied
