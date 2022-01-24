@@ -26,6 +26,9 @@
     <ClCompile Include="framework\EliteRendering\ERenderingTypes.cpp" />
     <ClCompile Include="projects\Research\App_NavigationMeshGeneration.cpp" />
     <ClCompile Include="framework\EliteRendering\SDLIntegration\SDLDebugRenderer2D\SDLDebugRenderer2D.cpp" />
+    <ClCompile Include="projects\Research\HelperStructs.cpp" />
+    <ClCompile Include="projects\Research\NavMeshGeneration.cpp" />
+    <ClCompile Include="projects\Research\NavMesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="projects\App_Selector.h" />
@@ -99,6 +102,9 @@
     <ClInclude Include="framework\EliteAI\EliteGraphs\EInfluenceMap.h" />
     <ClInclude Include="framework\EliteAI\EliteGraphs\EliteGraphAlgorithms\GraphColouring.h" />
     <ClInclude Include="projects\Research\App_NavigationMeshGeneration.h" />
+    <ClInclude Include="projects\Research\HelperStructs.h" />
+    <ClInclude Include="projects\Research\NavMeshGeneration.h" />
+    <ClInclude Include="projects\Research\NavMesh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="imgui.ini" />

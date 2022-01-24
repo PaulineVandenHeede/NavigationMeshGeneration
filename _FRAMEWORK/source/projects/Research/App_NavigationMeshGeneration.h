@@ -3,8 +3,10 @@
 
 #pragma once
 #include "framework/EliteInterfaces/EIApp.h"
+#include "HelperStructs.h"
 
-class App_NavigationMeshGeneration : public IApp
+
+class App_NavigationMeshGeneration final: public IApp
 {
 public:
 	App_NavigationMeshGeneration() = default;
@@ -16,9 +18,11 @@ public:
 	void Render(float deltaTime) const override;
 
 private:
-
 	App_NavigationMeshGeneration(const App_NavigationMeshGeneration&) = delete;
 	App_NavigationMeshGeneration operator=(const App_NavigationMeshGeneration&) noexcept = delete;
+
+	//DataMembers
+	Geometry::Polygon* m_pStartPolygon;
 };
 
 #endif

@@ -67,7 +67,7 @@ namespace Elite
 			position(_position.x, _position.y, depth), color(_color), size(_size)
 		{}
 
-		Vertex(const Elite::Vector2& _position, const Color& _color, float _size = 1.0f) :
+		Vertex(const Elite::Vector2& _position, const Color& _color = Color::AquaMenthe, float _size = 1.0f) :
 			position(_position.x, _position.y, -0.5f), color(_color), size(_size)
 		{}
 

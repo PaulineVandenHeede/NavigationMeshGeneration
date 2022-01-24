@@ -187,6 +187,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="framework\EliteRendering\SDLIntegration\SDLDebugRenderer2D\SDLDebugRenderer2D.cpp" />
+    <ClCompile Include="projects\Research\NavMesh.cpp" />
+    <ClCompile Include="projects\Research\NavMeshGeneration.cpp" />
+    <ClCompile Include="projects\Research\HelperStructs.cpp" />
     <ClCompile Include="projects\Research\App_NavigationMeshGeneration.cpp" />
     <ClCompile Include="framework\EliteAI\EliteDecisionMaking\EliteBehaviorTree\EBehaviorTree.cpp" />
     <ClCompile Include="framework\EliteAI\EliteDecisionMaking\EliteFiniteStateMachine\EFiniteStateMachine.cpp" />
@@ -218,6 +221,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="projects\Research\NavMesh.h" />
+    <ClInclude Include="projects\Research\NavMeshGeneration.h" />
+    <ClInclude Include="projects\Research\HelperStructs.h" />
     <ClInclude Include="projects\Research\App_NavigationMeshGeneration.h" />
     <ClInclude Include="framework\EliteAI\EliteData\EBlackboard.h" />
     <ClInclude Include="framework\EliteAI\EliteDecisionMaking\EDecisionMaking.h" />
