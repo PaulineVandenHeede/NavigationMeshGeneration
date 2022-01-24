@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 
+
 namespace Geometry
 {
 	struct VertexNode
