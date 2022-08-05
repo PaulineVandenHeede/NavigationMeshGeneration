@@ -33,6 +33,7 @@ namespace Elite {
 		explicit operator b2Vec3() const
 		{ return b2Vec3(x, y, z); };
 #endif
+		explicit operator Vector2() const { return Vector2{ x, y }; }
 
 		//=== Arithmetic Operators ===
 		inline auto operator+(const Vector3& v) const

@@ -5,12 +5,13 @@
 #include "framework/EliteInterfaces/EIApp.h"
 #include "HelperStructs.h"
 
+class NavMesh;
 
 class App_NavigationMeshGeneration final: public IApp
 {
 public:
 	App_NavigationMeshGeneration() = default;
-	virtual ~App_NavigationMeshGeneration();
+	virtual ~App_NavigationMeshGeneration() override;
 
 	//App functions
 	void Start() override;
@@ -22,7 +23,13 @@ private:
 	App_NavigationMeshGeneration operator=(const App_NavigationMeshGeneration&) noexcept = delete;
 
 	//DataMembers
-	Geometry::Polygon* m_pStartPolygon;
+	std::vector<Geometry::Polygon*> m_pStartPolygons;
+	std::vector<Geometry::Polygon*> m_pExpandedPolygons;
+
+	std::vector<Elite::Polygon*> m_pStartPolygonElites;
+	std::vector<Elite::Polygon*> m_pExpandedPolygonElites;
+
+	NavMesh* m_pNavMesh = nullptr;
 };
 
 #endif

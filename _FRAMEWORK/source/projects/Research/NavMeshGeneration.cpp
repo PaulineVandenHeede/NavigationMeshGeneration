@@ -1,24 +1,21 @@
 #include "stdafx.h"
 #include "NavMeshGeneration.h"
+#include "NavMesh.h"
 
 
-NavMesh* NavMeshGeneration::CreateNavMesh(Geometry::Polygon& bounds, std::initializer_list<Geometry::Polygon> obstacles)
+NavMesh* NavMeshGeneration::CreateNavMesh(Geometry::Polygon& bounds, std::initializer_list<Geometry::Polygon> obstacles, float playerRadius)
 {
-    
-
-    Triangulate(bounds);
-
-
-
-    return nullptr;
+    NavMesh* pNavMesh = new NavMesh{};
+    Triangulate(pNavMesh, bounds);
+    return pNavMesh;
 }
 
 
-void NavMeshGeneration::Triangulate(Geometry::Polygon& bounds)
+void NavMeshGeneration::Triangulate(NavMesh* pNavMesh, Geometry::Polygon& bounds)
 {
     Geometry::VertexNode* v0, * v1, * v2, * v3, * v4;
 
-    uint32_t n = bounds.size; //TODO: change to nvertices -> is this 5 or is this the number of vertices in the polygon
+    uint64_t n = bounds.size; //TODO: change to nvertices -> is this 5 or is this the number of vertices in the polygon
 
     EarInit(bounds);
 
@@ -39,9 +36,15 @@ void NavMeshGeneration::Triangulate(Geometry::Polygon& bounds)
                 v1->ear = Diagonal(v0, v3, bounds);
                 v3->ear = Diagonal(v1, v4, bounds);
 
+                //Add to nav mesh
+                pNavMesh->AddTriangle(bounds.pHead, bounds.pHead->pNext, bounds.pHead->pPrevious);
+
                 v1->pNext = v3;
                 v3->pPrevious = v1;
+                SAFE_DELETE(bounds.pHead);
                 bounds.pHead = v3;
+                --bounds.size;
+                --bounds.nextIndex;
                 --n;
                 break;
             }
@@ -50,6 +53,10 @@ void NavMeshGeneration::Triangulate(Geometry::Polygon& bounds)
         } while (v2 != bounds.pHead);
     }
 
+    pNavMesh->AddTriangle(bounds.pHead, bounds.pHead->pNext, bounds.pHead->pPrevious);
+    SAFE_DELETE(bounds.pHead->pNext);
+    SAFE_DELETE(bounds.pHead->pPrevious);
+    SAFE_DELETE(bounds.pHead);
 }
 
 void NavMeshGeneration::EarInit(Geometry::Polygon& bounds)
@@ -73,26 +80,27 @@ bool NavMeshGeneration::Diagonal(Geometry::VertexNode* v0, Geometry::VertexNode*
 
 bool NavMeshGeneration::InCone(Geometry::VertexNode* v0, Geometry::VertexNode* v1)
 {
-    Geometry::VertexNode* v2, * v3;
+    //Geometry::VertexNode* v2, * v3;
 
-    v2 = v0->pPrevious;
-    v3 = v0->pNext;
+    //v2 = v0->pPrevious;
+    //v3 = v0->pNext;
 
-    Elite::Vector2 v0pos{ v0->vertex.position.x, v0->vertex.position.y };
-    Elite::Vector2 v1pos{ v1->vertex.position.x, v1->vertex.position.y };
-    Elite::Vector2 v2pos{ v2->vertex.position.x, v2->vertex.position.y };
-    Elite::Vector2 v3pos{ v3->vertex.position.x, v3->vertex.position.y };
+    //Elite::Vector2 v0pos{ v0->vertex.position.x, v0->vertex.position.y };
+    //Elite::Vector2 v1pos{ v1->vertex.position.x, v1->vertex.position.y };
+    //Elite::Vector2 v2pos{ v2->vertex.position.x, v2->vertex.position.y };
+    //Elite::Vector2 v3pos{ v3->vertex.position.x, v3->vertex.position.y };
 
-    if (LeftOn(v0pos, v3pos, v2pos)) //vertex is convex
-        return Left(v0pos, v1pos, v2pos) && Left(v1pos, v0pos, v3pos);
+    //if (LeftOn(v0pos, v3pos, v2pos)) //vertex is convex
+    //    return Left(v0pos, v1pos, v2pos) && Left(v1pos, v0pos, v3pos);
 
-    //vertex is reflex
-    return !(LeftOn(v0pos, v1pos, v3pos) && LeftOn(v1pos, v0pos, v2pos));
+    ////vertex is reflex
+    //return !(LeftOn(v0pos, v1pos, v3pos) && LeftOn(v1pos, v0pos, v2pos));
+    return true;
 }
 
 bool NavMeshGeneration::Diagonalie(Geometry::VertexNode* v0, Geometry::VertexNode* v1, Geometry::Polygon& bounds)
 {
-    Geometry::VertexNode* v2, * v3;
+    /*Geometry::VertexNode* v2, * v3;
 
     v2 = bounds.pHead;
 
@@ -111,7 +119,7 @@ bool NavMeshGeneration::Diagonalie(Geometry::VertexNode* v0, Geometry::VertexNod
 
         v2 = v2->pNext;
 
-    } while (v2 != bounds.pHead);
+    } while (v2 != bounds.pHead);*/
 
     return true;
 }

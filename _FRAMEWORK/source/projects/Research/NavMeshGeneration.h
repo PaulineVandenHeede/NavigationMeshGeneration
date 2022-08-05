@@ -10,11 +10,11 @@ public:
 	NavMeshGeneration() = default;
 	~NavMeshGeneration() = default;
 
-	NavMesh* CreateNavMesh(Geometry::Polygon& bounds, std::initializer_list<Geometry::Polygon> obstacles);
+	NavMesh* CreateNavMesh(Geometry::Polygon& bounds, std::initializer_list<Geometry::Polygon> obstacles, float playerRadius = 1.f);
 
 private:
 
-	void Triangulate(Geometry::Polygon& bounds);
+	void Triangulate(NavMesh* pNavMesh, Geometry::Polygon& bounds);
 	void EarInit(Geometry::Polygon& bounds);
 	bool Diagonal(Geometry::VertexNode* v0, Geometry::VertexNode* v1, Geometry::Polygon& bounds);
 	bool InCone(Geometry::VertexNode* v0, Geometry::VertexNode* v1);

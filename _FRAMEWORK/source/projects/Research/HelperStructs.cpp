@@ -4,16 +4,16 @@
 namespace Geometry
 {
 #pragma region Vertex
-	VertexNode::VertexNode(Elite::Vertex vertex)
+	VertexNode::VertexNode(Elite::Vector2 position)
 		: index{ 0 }
-		, vertex{ vertex }
+		, position{ position }
 		, ear{ false }
 		, pNext{ nullptr }
 		, pPrevious{ nullptr }
 	{}
-	VertexNode::VertexNode(float x, float y, float z)
+	VertexNode::VertexNode(float x, float y)
 		: index{ 0 }
-		, vertex{ Elite::Vector3{ x, y, z }, Elite::Color{ Elite::Color::AquaMenthe } }
+		, position{ x, y }
 		, ear{ false }
 		, pNext{ nullptr }
 		, pPrevious{ nullptr }
@@ -22,7 +22,7 @@ namespace Geometry
 	//copy semantics
 	VertexNode::VertexNode(const VertexNode& v)
 		: index{ v.index }
-		, vertex{ v.vertex }
+		, position{ v.position }
 		, ear{ v.ear }
 		, pNext{ v.pNext }
 		, pPrevious{ v.pPrevious }
@@ -30,7 +30,7 @@ namespace Geometry
 	VertexNode& VertexNode::operator=(const VertexNode& v)
 	{
 		index = v.index;
-		vertex = v.vertex;
+		position = v.position;
 		ear = v.ear;
 		pNext = v.pNext;
 		pPrevious = v.pPrevious;
@@ -41,7 +41,7 @@ namespace Geometry
 	//Move semantics
 	VertexNode::VertexNode(VertexNode&& v) noexcept
 		: index{ std::move(v.index) }
-		, vertex{ std::move(v.vertex) }
+		, position{ std::move(v.position) }
 		, ear{ std::move(v.ear) }
 		, pNext{ std::move(v.pNext) }
 		, pPrevious{ std::move(v.pPrevious) }
@@ -50,7 +50,7 @@ namespace Geometry
 	VertexNode& VertexNode::operator=(VertexNode&& v) noexcept
 	{
 		index = std::move(v.index);
-		vertex = std::move(v.vertex);
+		position = std::move(v.position);
 		ear = std::move(v.ear);
 		pNext = std::move(v.pNext);
 		pPrevious = std::move(v.pPrevious);
@@ -60,10 +60,30 @@ namespace Geometry
 
 #pragma endregion !Vertex
 
-#pragma region Polygon
-	Polygon::Polygon(std::initializer_list<Elite::Vertex> vertices)
+#pragma region Triangle
+	Triangle::Triangle(Triangle&& t) noexcept
 	{
-		for (const Elite::Vertex& v : vertices)
+		for (int i = 0; i < 3; ++i)
+		{
+			points[i] = t.points[i];
+			t.points[i] = 0;
+		}
+	}
+	Triangle& Triangle::operator=(Triangle&& t) noexcept
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			points[i] = t.points[i];
+			t.points[i] = 0;
+		}
+		return *this;
+	}
+#pragma endregion Triangle
+
+#pragma region Polygon
+	Polygon::Polygon(std::initializer_list<Elite::Vector2> vertices)
+	{
+		for (const Elite::Vector2& v : vertices)
 		{
 			InsertEnd(v);
 		}
@@ -72,6 +92,9 @@ namespace Geometry
 	}
 	Polygon::~Polygon()
 	{
+		if (!pHead)
+			return;
+
 		while (pHead != pEnd) {
 			VertexNode* tmp = pHead;
 			pHead = pHead->pNext;
@@ -80,20 +103,98 @@ namespace Geometry
 		delete pHead;
 	}
 
+	Polygon::Polygon(Geometry::Polygon&& p) noexcept
+	{
+		pHead = p.pHead; p.pHead = nullptr;
+		pEnd = p.pEnd; p.pEnd = nullptr;
+		size = std::move(p.size);
+		nextIndex = std::move(p.nextIndex);
+
+		points = std::move(p.points);
+		triangles = std::move(p.triangles);
+		static_children = std::move(p.static_children);
+	}
+
+	Polygon& Polygon::operator=(Geometry::Polygon&& p) noexcept
+	{
+		pHead = p.pHead; p.pHead = nullptr;
+		pEnd = p.pEnd; p.pEnd = nullptr;
+		size = std::move(p.size);
+		nextIndex = std::move(p.nextIndex);
+
+		points = std::move(p.points);
+		triangles = std::move(p.triangles);
+		static_children = std::move(p.static_children);
+
+		return *this;
+	}
+
+
 	void Polygon::Draw() const
 	{
 		VertexNode* temp = pHead;
 		while (temp->pNext != pHead)
 		{
-			DEBUGRENDERER2D->DrawPoint(Elite::Vector2{ temp->vertex.position.x, temp->vertex.position.y }, 3.f, temp->vertex.color);
-			DEBUGRENDERER2D->DrawSegment(Elite::Vector2{ temp->vertex.position.x, temp->vertex.position.y }, Elite::Vector2{ temp->pNext->vertex.position.x, temp->pNext->vertex.position.y }, Elite::Color::OrangeRed);
+			DEBUGRENDERER2D->DrawPoint(temp->position, 3.f, temp->colour);
+			DEBUGRENDERER2D->DrawSegment(temp->position, temp->pNext->position, Elite::Color::OrangeRed);
 			temp = temp->pNext;
 		}
-		DEBUGRENDERER2D->DrawPoint(Elite::Vector2{ temp->vertex.position.x, temp->vertex.position.y }, 3.f, temp->vertex.color);
-		DEBUGRENDERER2D->DrawSegment(Elite::Vector2{ temp->vertex.position.x, temp->vertex.position.y }, Elite::Vector2{ temp->pNext->vertex.position.x, temp->pNext->vertex.position.y }, Elite::Color::OrangeRed);
+		DEBUGRENDERER2D->DrawPoint(temp->position, 3.f, temp->colour);
+		DEBUGRENDERER2D->DrawSegment(temp->position, temp->pNext->position, Elite::Color::OrangeRed);
 	}
 
-	void Polygon::InsertBegin(const Elite::Vertex& v)
+	void Polygon::AddChild(Geometry::Polygon&& p)
+	{
+		static_children.push_back(p);
+	}
+
+	void Polygon::Expand(float distance) const
+	{
+		std::vector<Elite::Vector2> newPositions{};
+
+		VertexNode* p = pHead;
+		for (uint64_t i = 0; i < size; ++i)
+		{
+			VertexNode* previous = p->pPrevious;
+			VertexNode* next = p->pNext;
+
+			Elite::Vector2 vn = next->position - p->position; //dirTwo
+			vn = Elite::Vector2{ vn.y, -vn.x }; //default is expanding not insetting -> that's why x has - and not y
+			Elite::Normalize(vn);
+			vn *= distance;
+
+			Elite::Vector2 vp = p->position - previous->position; //dirOne
+			vp = Elite::Vector2{ vp.y, -vp.x };
+			Elite::Normalize(vp);
+			vp *= distance;
+
+			float bislen = distance / std::sqrtf(1 + vn.Dot(vp));
+
+			Elite::Vector2 bis = vn + vp;
+			//Elite::Normalize(bis);
+
+			Elite::Vector2 vertex = p->position + bislen * bis;
+			//Elite::Vector2 vertex = p->position + bis;
+
+			newPositions.push_back(vertex);
+			std::cout << "Vertex " << std::to_string(p->index) << '\n';
+			std::cout << '\t' << "Old position" << p->position << '\n';
+			std::cout << '\t' << "New position" << vertex << '\n';
+			std::cout << std::endl;
+
+			p = next;
+		}
+
+		p = pHead;
+		for (uint64_t i = 0; i < size; ++i)
+		{
+			p->position = newPositions[static_cast<uint32_t>(p->index)];
+			p = p->pNext;
+		}
+	}
+
+
+	void Polygon::InsertBegin(const Elite::Vector2& v)
 	{
 		VertexNode* vertex = new VertexNode{ v };
 		vertex->pNext = pHead;
@@ -111,7 +212,7 @@ namespace Geometry
 		++nextIndex;
 		++size;
 	}
-	void Polygon::InsertEnd(const Elite::Vertex& v)
+	void Polygon::InsertEnd(const Elite::Vector2& v)
 	{
 		VertexNode* vertex = new VertexNode{ v };
 		vertex->pNext = pHead;
@@ -130,4 +231,9 @@ namespace Geometry
 		++size;
 	}
 #pragma endregion !Polygon
+
+	void ScalePolygon(Geometry::Polygon& polygon)
+	{
+
+	}
 }

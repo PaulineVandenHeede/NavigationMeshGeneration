@@ -275,7 +275,7 @@ const std::vector<Elite::Triangle*>& Elite::Polygon::Triangulate()
 		//FILL IN FUNCTIONS!
 	}
 
-	//Sort the children. Start by sorting from top to bottom (verices are what matters, not the "center" pos of the polygon!)
+	//Sort the children. Start by sorting from top to bottom (vertices are what matters, not the "center" pos of the polygon!)
 	std::sort(m_vChildren.begin(), m_vChildren.end(),
 		[](const Polygon& p1, const Polygon& p2)
 	{ return p1.GetPosVertMaxYPos() > p2.GetPosVertMaxYPos(); });
@@ -283,7 +283,7 @@ const std::vector<Elite::Triangle*>& Elite::Polygon::Triangulate()
 	//Copy children as backup after sort
 	const auto children = m_vChildren;
 	
-	//THEN, we check two elements, if the don't overlap horizontally you don't do anything, else you swap them based on right most object
+	//THEN, we check two elements, if they don't overlap horizontally you don't do anything, else you swap them based on right most object
 	for (auto i = 0; i < static_cast<int>(m_vChildren.size()) - 1; ++i)
 	{
 		if (m_vChildren[i].OverlappingYAxis(m_vChildren[i + 1]))
@@ -375,7 +375,7 @@ void Elite::Polygon::ExpandShape(float amount)
 		//Calculate directions
 		auto dirOne = current - prev;
 		auto dirTwo = next - current;
-		//Calculate normals + esize normals based on amount
+		//Calculate normals + resize normals based on amount
 		Vector2 normOne = Vector2(-dirOne.y, dirOne.x);
 		normOne.Normalize();
 		normOne *= amount;
@@ -507,7 +507,7 @@ void Elite::Polygon::FindMutualVisibleVertices(const Polygon& outer, const Polyg
 	//Store inner point to output
 	pInner = *maxInnerPoint;
 
-	// --- 2. Based on found inner point, find mutually visisble outer point
+	// --- 2. Based on found inner point, find mutually visible outer point
 	//2.1 Intersect ray M + t(1,0) with all directed edges of OUTER (M is left of edges) - Result point I
 	//http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 	const Vector2 furthestPointRay = Vector2(rayMaxX, maxInnerPoint->y);
