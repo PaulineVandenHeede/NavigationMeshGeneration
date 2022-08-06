@@ -362,7 +362,7 @@ namespace Elite
 		RemoveConnection(pConnection->GetFrom(), pConnection->GetTo());
 	}
 
-	template<class T_NodeType, class T_ConnectionType>
+	template<class T_NodeType, class T_ConnectionType >
 	inline void IGraph<T_NodeType, T_ConnectionType>::RemoveConnectionsToAdjacentNodes(int idx)
 	{
 		// remove and delete connections from this pNode
@@ -374,7 +374,7 @@ namespace Elite
 		auto isConnectionToThisNode = [idx](T_ConnectionType* pCon) { return pCon->GetTo() == idx; };
 		for (auto& c : m_Connections)
 		{
-			list<T_ConnectionType*>::iterator foundIt;
+			typename list<T_ConnectionType*>::iterator foundIt;
 			while ((foundIt = std::find_if(c.begin(), c.end(), isConnectionToThisNode))	!= c.end())
 			{
 				delete *foundIt;

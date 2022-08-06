@@ -82,7 +82,7 @@ namespace Elite
 				end.pConnection = pConnection;
 
 				//Check if in closed list
-				std::vector<NodeRecord>::const_iterator found = std::find_if(closedList.cbegin(), closedList.cend(), [&end](const NodeRecord& node) { return node.pNode == end.pNode; });
+				typename std::vector<NodeRecord>::const_iterator found = std::find_if(closedList.cbegin(), closedList.cend(), [&end](const NodeRecord& node) { return node.pNode == end.pNode; });
 				if (found != closedList.cend())
 				{
 					if ((*found).costSoFar <= end.costSoFar)
@@ -119,7 +119,7 @@ namespace Elite
 
 			T_NodeType* pFrom = m_pGraph->GetNode(current.pConnection->GetFrom());
 
-			std::vector<NodeRecord>::const_iterator it = std::find_if(closedList.cbegin(), closedList.cend(), [&pFrom](const NodeRecord& node) { return node.pNode == pFrom; });
+			typename std::vector<NodeRecord>::const_iterator it = std::find_if(closedList.cbegin(), closedList.cend(), [&pFrom](const NodeRecord& node) { return node.pNode == pFrom; });
 
 			current = *it;
 		}

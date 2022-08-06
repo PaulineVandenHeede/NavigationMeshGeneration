@@ -21,7 +21,8 @@ namespace Elite
 		Graph2D(const Graph2D& other);
 		virtual shared_ptr<IGraph<T_NodeType, T_ConnectionType>> Clone() const override;
 
-		using IGraph::GetNodePos;
+		using IGraphBaseClass = IGraph<T_NodeType, T_ConnectionType>;
+		using IGraphBaseClass::GetNodePos;
 		virtual Vector2 GetNodePos(T_NodeType* pNode) const override { return pNode->GetPosition(); }
 
 		virtual int GetNodeIdxAtWorldPos(const Elite::Vector2& pos) const override;
@@ -40,7 +41,7 @@ namespace Elite
 
 	template<class T_NodeType, class T_ConnectionType>
 	Graph2D<T_NodeType, T_ConnectionType>::Graph2D(bool isDirectional)
-		: IGraph(isDirectional)
+		: IGraph<T_NodeType, T_ConnectionType>(isDirectional)
 	{
 	}
 
@@ -60,11 +61,11 @@ namespace Elite
 	inline int Graph2D<T_NodeType, T_ConnectionType>::GetNodeIdxAtWorldPos(const Elite::Vector2& pos) const
 	{
 		float posErrorMargin = 1.5f;
-		auto foundIt = find_if(m_Nodes.begin(), m_Nodes.end(),
+		auto foundIt = find_if(this->m_Nodes.begin(), this->m_Nodes.end(),
 			[pos, posErrorMargin, this](T_NodeType* pNode)
-		{ return (pNode->GetPosition() - pos).MagnitudeSquared() < pow(posErrorMargin * GetNodeRadius(pNode), 2); });
+		{ return (pNode->GetPosition() - pos).MagnitudeSquared() < pow(posErrorMargin * IGraphBaseClass::GetNodeRadius(pNode), 2); });
 
-		if (foundIt != m_Nodes.end())
+		if (foundIt != this->m_Nodes.end())
 			return (*foundIt)->GetIndex();
 		else
 			return invalid_node_index;
@@ -73,12 +74,12 @@ namespace Elite
 	template<class T_NodeType, class T_ConnectionType>
 	void Graph2D<T_NodeType, T_ConnectionType>::SetConnectionCostsToDistance()
 	{
-		for (auto& connectionList : m_Connections)
+		for (auto& connectionList : this->m_Connections)
 		{
 			for (auto& connection : connectionList)
 			{
-				auto posFrom = GetNodePos(connection->GetFrom());
-				auto posTo = GetNodePos(connection->GetTo());
+				auto posFrom = IGraphBaseClass::GetNodePos(connection->GetFrom());
+				auto posTo = IGraphBaseClass::GetNodePos(connection->GetTo());
 				connection->SetCost(abs(Distance(posFrom, posTo)));
 			}
 		}
@@ -90,7 +91,7 @@ namespace Elite
 		for (auto& n : nodes)
 		{
 			if (n)
-				m_Nodes[n->GetIndex()]->SetColor(color);
+				this->m_Nodes[n->GetIndex()]->SetColor(color);
 		}
 	}
 
@@ -98,12 +99,12 @@ namespace Elite
 	T_ConnectionType* Graph2D<T_NodeType, T_ConnectionType>::GetConnectionAtPosition(const Vector2& pos) const
 	{
 		T_ConnectionType* result = nullptr;
-		for (auto connectionList : m_Connections)
+		for (auto connectionList : this->m_Connections)
 		{
 			for (auto connection : connectionList)
 			{
-				auto segmentStart = GetNodePos(connection->GetTo());
-				auto segmentEnd =	GetNodePos(connection->GetFrom());
+				auto segmentStart = IGraphBaseClass::GetNodePos(connection->GetTo());
+				auto segmentEnd =	IGraphBaseClass::GetNodePos(connection->GetFrom());
 
 				auto projectedPoint = ProjectOnLineSegment(segmentStart, segmentEnd, pos);
 

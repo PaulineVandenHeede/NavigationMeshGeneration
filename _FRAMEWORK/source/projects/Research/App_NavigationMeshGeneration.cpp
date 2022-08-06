@@ -66,29 +66,37 @@ void App_NavigationMeshGeneration::Start()
 
 	// -- TRY OUT: EXPANDING POLYGON --
 	{
-	//-- Polygon 1: orthogonal
-	/*Elite::Vector2 v0 = Elite::Vector2{ 2.f, -3.f };
-	Elite::Vector2 v1 = Elite::Vector2{ 6.f, -3.f };
-	Elite::Vector2 v2 = Elite::Vector2{ 6.f, 1.f };
-	Elite::Vector2 v3 = Elite::Vector2{ 8.f, 1.f };
-	Elite::Vector2 v4 = Elite::Vector2{ 8.f, -3.f };
-	Elite::Vector2 v5 = Elite::Vector2{ 12.f, -3.f };
-	Elite::Vector2 v6 = Elite::Vector2{ 12.f, 4.f };
-	Elite::Vector2 v7 = Elite::Vector2{ 2.f, 4.f };*/
+		////-- Polygon 1: orthogonal
+		///*Elite::Vector2 v0 = Elite::Vector2{ 2.f, -3.f };
+		//Elite::Vector2 v1 = Elite::Vector2{ 6.f, -3.f };
+		//Elite::Vector2 v2 = Elite::Vector2{ 6.f, 1.f };
+		//Elite::Vector2 v3 = Elite::Vector2{ 8.f, 1.f };
+		//Elite::Vector2 v4 = Elite::Vector2{ 8.f, -3.f };
+		//Elite::Vector2 v5 = Elite::Vector2{ 12.f, -3.f };
+		//Elite::Vector2 v6 = Elite::Vector2{ 12.f, 4.f };
+		//Elite::Vector2 v7 = Elite::Vector2{ 2.f, 4.f };*/
 
-	//-- Polygon 2: non-orthogonal
-	/*Elite::Vector2 v0 = Elite::Vector2{ 3.f, -2.f };
-	Elite::Vector2 v1 = Elite::Vector2{ 9.f, -2.f };
-	Elite::Vector2 v2 = Elite::Vector2{ 11.f, 3.f };
-	Elite::Vector2 v3 = Elite::Vector2{ 1.f, 3.f };*/
+		////-- Polygon 2: non-orthogonal
+		//Elite::Vector2 v0 = Elite::Vector2{ 3.f, -2.f };
+		//Elite::Vector2 v1 = Elite::Vector2{ 9.f, -2.f };
+		//Elite::Vector2 v2 = Elite::Vector2{ 11.f, 3.f };
+		//Elite::Vector2 v3 = Elite::Vector2{ 1.f, 3.f };
 
-	/*m_pStartPolygon = new Geometry::Polygon{ { v0, v1, v2, v3, v4, v5, v6, v7 } };
-	m_pExpandedPolygon = new Geometry::Polygon{ {v0, v1, v2, v3, v4, v5, v6, v7 } };
-	m_pExpandedPolygon->Expand(2.f);
+		//m_pStartPolygons.push_back(new Geometry::Polygon{ { v0, v1, v2, v3 } });
+		//m_pExpandedPolygons.push_back(new Geometry::Polygon{ {v0, v1, v2, v3 } });
+		//size_t size = m_pExpandedPolygons.size();
+		//for (size_t i = 0; i < size; ++i)
+		//{
+		//	m_pExpandedPolygons[i]->Expand(2.f);
+		//}
 
-	m_pStartPolygonElite = new Elite::Polygon{ std::list<Elite::Vector2>{ v0, v1, v2, v3, v4, v5, v6, v7 } };
-	m_pExpandedPolygonElite = new Elite::Polygon{ std::list<Elite::Vector2>{ v0, v1, v2, v3, v4, v5, v6, v7 } };
-	m_pExpandedPolygonElite->ExpandShape(-2.f);*/
+		//m_pStartPolygonElites.push_back(new Elite::Polygon{ { v0, v1, v2, v3 } });
+		//m_pExpandedPolygonElites.push_back(new Elite::Polygon{ {v0, v1, v2, v3 } });
+		//size = m_pExpandedPolygonElites.size();
+		//for (size_t i = 0; i < size; ++i)
+		//{
+		//	m_pExpandedPolygonElites[i]->ExpandShape(-2.f);
+		//}
 	}
 
 
@@ -100,6 +108,29 @@ void App_NavigationMeshGeneration::Start()
 	Elite::Vector2 hv3 = Elite::Vector2{ 5.f, -1.f };*/
 
 	//m_pStartPolygon->AddChild(Geometry::Polygon{ hv0, hv1, hv2, hv3 });
+	}
+
+	//-- TRY OUT: POLYGON MERGING --
+	//- Polygon 1
+
+	//-- TRY OUT: MERGE POLYGONS
+	{
+		Elite::Vector2 v0_0 = { 2.f, 4.f };
+		Elite::Vector2 v0_1 = { 3.f, -4.f };
+		Elite::Vector2 v0_2 = { 9.f, -4.f };
+		Elite::Vector2 v0_3 = { 8.f, 4.f };
+
+		//- Polygon 2
+		Elite::Vector2 v1_0 = { 8.f, -3.f };
+		Elite::Vector2 v1_1 = { 7.f, -10.f };
+		Elite::Vector2 v1_2 = { 12.f, -10.f };
+		Elite::Vector2 v1_3 = { 11.f, -3.f };
+
+		m_pStartPolygons.push_back(new Geometry::Polygon{{ v0_0, v0_1, v0_2, v0_3 }});
+		m_pStartPolygons.push_back(new Geometry::Polygon{ { v1_0, v1_1, v1_2, v1_3 } });
+		m_pMergedPolygon = new Geometry::Polygon{};
+
+		Geometry::MergePolygon(m_pStartPolygons, m_pMergedPolygon);
 	}
 }
 
@@ -121,7 +152,7 @@ void App_NavigationMeshGeneration::Render(float deltaTime) const
 	size = min(m_pStartPolygons.size(), m_pExpandedPolygons.size());
 	for(size_t i = 0; i < size; ++i)
 	{
-		//m_pStartPolygons[i]->Draw();
+		m_pStartPolygons[i]->Draw();
 		m_pExpandedPolygons[i]->Draw();
 	}
 

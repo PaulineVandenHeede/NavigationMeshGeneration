@@ -1,3 +1,6 @@
-﻿  App_NavigationMeshGeneration.cpp
+﻿  EGraphEditor.cpp
+  EGraphRenderer.cpp
+  ENavGraph.cpp
+  Generating Code...
   GPP_Framework.vcxproj -> D:\Github\NavigationMeshGeneration\_FRAMEWORK\bin\Debug\GPP_Framework.exe
   0 File(s) copied
