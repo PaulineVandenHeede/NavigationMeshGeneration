@@ -6,7 +6,7 @@
 
 namespace Geometry
 {
-#pragma region Vertex
+#pragma region VertexNode
 	VertexNode::VertexNode(Elite::Vector2 position)
 		: index{ 0 }
 		, position{ position }
@@ -61,7 +61,7 @@ namespace Geometry
 		return *this;
 	}
 
-#pragma endregion !Vertex
+#pragma endregion !VertexNode
 
 #pragma region Triangle
 	Triangle::Triangle(Triangle&& t) noexcept
@@ -86,14 +86,18 @@ namespace Geometry
 #pragma region Polygon
 	Polygon::Polygon(std::initializer_list<Elite::Vector2> vertices)
 	{
-		size_t size = vertices.size();
-		points.reserve(size);
+		const size_t size = vertices.size();
+		m_vertices.reserve(size);
 		for (const Elite::Vector2& v : vertices)
 		{
 			InsertEnd(v);
 		}
 
-		//edges.try_emplace(&points.front(), Geometry::Edge{ &points[0], &points[size - 1] });
+		Geometry::Vertex* reference = &m_vertices[size-1];
+		reference->edges.emplace_back(Geometry::Edge{ reference->position, m_vertices[0].position, this});
+
+		OrderEdges();
+		SortEdgesOnCenterY();
 
 		std::cout << "Polygon constructor called!\n";
 	}
@@ -117,7 +121,7 @@ namespace Geometry
 		size = std::move(p.size);
 		nextIndex = std::move(p.nextIndex);
 
-		points = std::move(p.points);
+		m_vertices = std::move(p.m_vertices);
 		triangles = std::move(p.triangles);
 		static_children = std::move(p.static_children);
 	}
@@ -129,7 +133,7 @@ namespace Geometry
 		size = std::move(p.size);
 		nextIndex = std::move(p.nextIndex);
 
-		points = std::move(p.points);
+		m_vertices = std::move(p.m_vertices);
 		triangles = std::move(p.triangles);
 		static_children = std::move(p.static_children);
 
@@ -202,14 +206,9 @@ namespace Geometry
 		}
 	}
 
-	const std::vector<Elite::Vector2>& Polygon::GetVertices() const
+	const std::vector<Geometry::Vertex>& Polygon::GetVertices() const
 	{
-		return points;
-	}
-
-	const std::unordered_map< const Elite::Vector2*, Geometry::Edge>& Polygon::GetEdges() const
-	{
-		return edges;
+		return m_vertices;
 	}
 
 
@@ -238,12 +237,12 @@ namespace Geometry
 		vertex->pPrevious = pEnd;
 		vertex->index = nextIndex;
 
-		points.push_back(v);
-		size_t size = points.size();
-		if (size != 1)
+		m_vertices.emplace_back(v);
+		const size_t size_vertices = m_vertices.size();
+		if (size_vertices != 1)
 		{
-			const Elite::Vector2* reference = &points[size - 1];
-			edges.emplace(&points[size-1], Geometry::Edge{&points[size - 1], &points[size - 2]});
+			Geometry::Vertex* reference = &m_vertices[size_vertices - 2];
+			reference->edges.emplace_back(Geometry::Edge{ reference->position, v, this });
 		}
 
 		if (pHead)
@@ -257,192 +256,199 @@ namespace Geometry
 		++nextIndex;
 		++size;
 	}
+	void Polygon::OrderEdges()
+	{
+		size_t size = m_vertices.size();
+		for(size_t i = 0; i < size; ++i)
+		{
+			std::vector<Geometry::Edge>& edges = m_vertices[i].edges;
+
+			erase_if(edges, [this](const Geometry::Edge& edge)
+				{
+					if (edge.begin_position.x < edge.end_position.x)
+						return false;
+
+					auto it = std::find_if(m_vertices.begin(), m_vertices.end(), [&edge](const Geometry::Vertex& v) { return v.position == edge.end_position; });
+					it->edges.emplace_back(std::move(edge.end_position), std::move(edge.begin_position));
+					return true;
+				});
+		}
+	}
+
+	void Polygon::SortEdgesOnCenterY()
+	{
+		size_t size = m_vertices.size();
+		for (size_t i = 0; i < size; ++i)
+		{
+			std::vector<Geometry::Edge>& edges = m_vertices[i].edges;
+
+			std::sort(edges.begin(), edges.end(), [](const Geometry::Edge& e1, const Geometry::Edge& e2)
+				{
+					const Elite::Vector2 center1 = (e1.begin_position + e1.end_position) / 2.f;
+					const Elite::Vector2 center2 = (e2.begin_position + e2.end_position) / 2.f;
+					return center1.y > center2.y;
+				});
+		}
+	}
+
+
 #pragma endregion !Polygon
 
 	void ScalePolygon(Geometry::Polygon& polygon)
 	{
 
 	}
-	void MergePolygon(const std::vector<Geometry::Polygon*>& pPolygonsToMerge, Geometry::Polygon* pMergerdPolygon)
+	void MergePolygon(const std::vector<Geometry::Polygon*>& p_polygons_to_merge, Geometry::Polygon* pMergerdPolygon)
 	{
-		std::vector<int> numbers{ 0, 1, 2, 3, 4, 5 };
-		int count = 6;
-		for (int i{ 0 }; i < numbers.size(); ++i)
-		{
-			if(numbers[i] % 3 == 0)
-			{
-				std::vector<int>::iterator it = numbers.begin() + i;
-				numbers.insert(it, count);
-				++count;
-			}
-		}
-
-
-
-		/////STEP 1: SUBDIVIDING THE EDGES
-		/////		1.1: SORT VERTICES (FROM ALL POLYGONS) FROM LEFT TO RIGHT
-		//std::vector<Elite::Vector2> vertices; //hold pointers to vertices because we need the original pointer for the edges
+		///STEP 1: SUBDIVIDING THE EDGES
+		///		1.1: SORT VERTICES (FROM ALL POLYGONS) FROM LEFT TO RIGHT
+		std::vector<Geometry::Vertex> vertices; //will hold copy of vertices of original polygons to make one big polygon
 		//std::unordered_multimap<const Elite::Vector2*, const Geometry::Edge> edges;
-		//size_t size = pPolygonsToMerge.size();
+		size_t size = p_polygons_to_merge.size();
+		//TODO: DOESN'T NECESSARILY NEED TO HAPPEN BUT MAYBE BETTER FOR MEMORY USAGE
 		//size_t total_size = 0;
 		//for (size_t i = 0; i < size; ++i)
 		//{
 		//	total_size += pPolygonsToMerge[i]->GetVertices().size();
 		//}
-
-		////RESERVE MEMORY FOR VECTOR -> else memory addresses will be changed, we do not want that because we work with references (weak-pointers)
 		//vertices.reserve(total_size);
 
-		////add all polygon vertices to one vector
-		////add all polygon edges to one map
-		//for(size_t i = 0; i < size; ++i)
-		//{
-		//	const std::vector<Elite::Vector2>& tempVertices = pPolygonsToMerge[i]->GetVertices();
-		//	const std::unordered_map<const Elite::Vector2*, Geometry::Edge>& tempEdges = pPolygonsToMerge[i]->GetEdges();
+		//add all polygon vertices to one vector
+		//add all polygon edges to one map
+		for(size_t i = 0; i < size; ++i)
+		{
+			const std::vector<Geometry::Vertex>& temp_vertices = p_polygons_to_merge[i]->GetVertices();
+			std::ranges::copy(temp_vertices.cbegin(), temp_vertices.cend(), std::back_inserter(vertices));
+		}
 
-		//	//vertices
-		//	std::for_each(tempVertices.cbegin(), tempVertices.cend(), [&vertices, &tempEdges, &edges](const Elite::Vector2& v)
-		//		{
-		//			vertices.push_back(v);
-
-		//			//find edges corresponding to vertex
-		//			const auto corresponding_edge = tempEdges.find(&v);
-		//			edges.emplace(vertices.back(), Geometry::Edge{ corresponding_edge->second });
-		//		}); //copy because we want to keep original polygons
-
-		//	//edges
-		//	std::vector<std::pair<const Elite::Vector2*, Elite::Line>> edges_to_add;
-		//	//remove wrongly sorted edges and create correctly sorted edges
-		//	std::erase_if(edges, [&edges_to_add, &vertices](const std::pair<const Elite::Vector2*, Elite::Line>& e)
-		//		{
-		//			//TODO: VERTICAL EDGES
-		//			if (e.second.p2.x > e.second.p1.x) // not sorted correctly
-		//			{
-		//				//search in vector correct start point
-		//				auto found = std::ranges::find_if(vertices.cbegin(), vertices.cend(), [&e](const Elite::Vector2& v)
-		//					{
-		//						return e.second.p1 == v;
-		//					});
-		//				Elite::Line line{ e.second.p2, e.second.p1 };
-		//				edges_to_add.emplace_back(std::make_pair(e.first, line));
-		//			}
-
-		//			return e.second.p2.x > e.second.p1.x;
-		//		});
-
-		//	//add correct sorted edges
-		//	std::ranges::for_each(edges_to_add.cbegin(), edges_to_add.cend(), [&edges](const std::pair<const Elite::Vector2*, Elite::Line>& edge)
-		//		{
-		//			edges.emplace(edge.first, edge.second);
-		//		});
-
-
-		//}
-
-		////sort from left to right
-		//std::ranges::sort(vertices.begin(), vertices.end(), [](const Elite::Vector2& v0, const Elite::Vector2& v1)
-		//	{
-		//		return(v0.x < v1.x);
-		//	});
-
-		/////		1.2: SWEEP ALGORITHM
+		std::ranges::sort(vertices.begin(), vertices.end(), [](const Geometry::Vertex& v0, const Geometry::Vertex& v1)
+		{
+			if (Elite::AreEqual(v0.position.x, v1.position.x))
+			{
+				return v0.position.y < v1.position.y;
+			}
+			return v0.position.x < v1.position.x;
+		});
+		
+		///		1.2: SWEEP ALGORITHM
 		//size = vertices.size();
-		//std::deque<Geometry::DataStructure> data_structure_edges;
-		//std::vector<Geometry::SweepEvent> events;
-		//for(size_t i = 0; i < size; ++i)
-		//{
-		//	///A.	GET EDGES FROM VERTICES
-		//	const Elite::Vector2& vertex = vertices[i];
-		//	auto potential_edges = edges.equal_range(&vertex);
+		std::deque<Geometry::DataStructure> data_structure_edges;
+		std::vector<Geometry::SweepEvent> events;
 
-		//	std::cout << "For vertex " << vertex << " found " << edges.count(&vertex) << " edges: \n";
-		//	int j = 1;
-		//	for(auto it = potential_edges.first; it != potential_edges.second; ++it)
-		//	{
-		//		std::cout << "\t edge " << std::to_string(j) << ": " << *(it->second.p_begin_position) << " - " << *(it->second.p_end_position) << '\n';
-		//		++j;
-		//	}
+		for (size_t i = 0; i < vertices.size(); ++i)
+		{
+			///A.	GET EDGES FROM VERTICES
+			const Geometry::Vertex& current_vertex = vertices[i];
+			auto potential_edges = current_vertex.edges;
 
-		//	///B.	ADD TO DATA STRUCTURE (holds the edges) THE EDGES THAT START
-		//	const size_t previous_size = data_structure_edges.size();
-		//	for (auto it = potential_edges.first; it != potential_edges.second; ++it)
-		//	{
-		//		DataStructure data{ it->second };
-		//		data_structure_edges.emplace_front(data);
-		//	}
+			std::cout << current_vertex << std::endl;
 
-		//	///C.	CHECK FOR COLLISION WITH NEIGHBOURING EDGES
-		//	size_t nr_lines_to_check = data_structure_edges.size() - previous_size;
-		//	for (size_t i = 0; i < nr_lines_to_check; ++i)
-		//	{
-		//		Geometry::Edge edge1 = data_structure_edges[i].edge;
-		//		Geometry::Edge edge2 = data_structure_edges[i + 1].edge;
+			///B.	ADD EDGES TO DATA STRUCTURE
+			const size_t previous_size = data_structure_edges.size();
+			for(Geometry::Edge edge :potential_edges)
+			{
+				DataStructure data{ edge };
+				data_structure_edges.emplace_front(data);
+			}
 
-		//		///COLLISION ALGORITHM
-		//		Elite::Vector2 direction1 = *edge1.p_end_position - *edge1.p_begin_position;
-		//		Elite::Vector2 direction2 = *edge2.p_end_position - *edge2.p_begin_position;
-		//		Elite::Vector2 intersection{};
+			///B.1.	ADD EVENT TO RESULTS
+			Geometry::SweepEvent sweepevent{};
 
-		//		const bool result = Geometry::LineLineIntersection(intersection, *edge1.p_begin_position, direction1, *edge2.p_begin_position, direction2);
-		//		if (!result)
-		//			continue;
+			///C.	CHECK FOR COLLISION WITH NEIGHBOURING EDGES
+			const size_t count = data_structure_edges.size() - previous_size;
+			for(size_t j = 0; j < count; ++j)
+			{
+				if (j + 1 == data_structure_edges.size())
+					continue;
 
-		//		///ADD INTERSECTION POINT TO VERTICES
-		//		//find place in vertices, so that vertices stay sorted
-		//		auto found = std::find_if(vertices.cbegin(), vertices.cend(), [&intersection](const Elite::Vector2* const v)
-		//			{
-		//				return v->x > intersection.x;
-		//			});
-		//		auto inserted = vertices.insert(found, intersection);
+				const Geometry::Edge edge1 = data_structure_edges[j].edge;
+				const Geometry::Edge edge2 = data_structure_edges[j + 1].edge;
+				///		COLLISION ALGORITHM
+				Elite::Vector2 direction1 = edge1.end_position - edge1.begin_position;
+				Elite::Vector2 direction2 = edge2.end_position - edge2.begin_position;
+				Elite::Vector2 intersection{};
 
-				///ADD NEW EDGES TO EDGES
-				//{
-				//	//Edge 1
-				//	Geometry::Edge new_edge1_1{ &(*inserted), *edge1.p_end_position };
-				//	Elite::Line new_edge1_2{ edge1.p2, intersection };
+				const bool result = Geometry::LineLineIntersection(intersection, edge1.begin_position, direction1, edge2.begin_position, direction2);
+				if (!result)
+					continue;
 
-				//	found = std::find_if(vertices.cbegin(), vertices.cend(), [&edge1](const Elite::Vector2* const v)
-				//		{
-				//			return *v == edge1.p1;
-				//		});
+				//Filter results of intersection
+				// > the point of intersection cannot be a vertex that defines the edges
+				// > if it is a point of one edge it automatically is a point of the other edge as well
+				// > thus, it is enough to check one edge
+				if ((Elite::AreEqual(intersection.x, edge1.begin_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.begin_position.y, 0.00001f))
+					|| (Elite::AreEqual(intersection.x, edge1.end_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.end_position.y, 0.00001f)))
+					continue;
 
-				//	edges.emplace(&(*found), new_edge1_1);
-				//	edges.emplace(&(*inserted), new_edge1_2);
+				// > Intersection needs to lie on one of the edges
+				if ((intersection.x < min(edge1.begin_position.x, edge1.end_position.x) || intersection.x > max(edge1.begin_position.x, edge1.end_position.x))
+					|| (intersection.x < min(edge2.begin_position.x, edge2.end_position.x) || intersection.x > max(edge2.begin_position.x, edge2.end_position.x)))
+					continue;
+				if ((intersection.y < min(edge1.begin_position.y, edge1.end_position.y) || intersection.y > max(edge1.begin_position.y, edge1.end_position.y))
+					|| (intersection.y < min(edge2.begin_position.y, edge2.end_position.y) || intersection.y > max(edge2.begin_position.y, edge2.end_position.y)))
+					continue;
 
-				//	//Edge 2
-				//	Elite::Line new_edge2_1{ intersection, edge2.p1 };
-				//	Elite::Line new_edge2_2{ edge2.p2, intersection };
+				///		ADD INTERSECTION AS NEW VERTEX TO VERTICES
+				Geometry::Vertex intersection_vertex{ intersection };
+				//find element just after intersection
+				auto found = std::find_if(vertices.cbegin(), vertices.cend(), [&intersection](const Geometry::Vertex& v)
+					{
+						return v.position.x > intersection.x;
+					});
+				auto inserted = vertices.insert(found, intersection_vertex);
 
-				//	found = std::find_if(vertices.cbegin(), vertices.cend(), [&edge2](const Elite::Vector2* const v)
-				//		{
-				//			return *v == edge2.p1;
-				//		});
+				///		CREATE NEW EDGES
+				//Edge 1
+				Geometry::Edge new_edge1_1{ edge1.begin_position, intersection };
+				Geometry::Edge new_edge1_2{ intersection, edge1.end_position };
 
-				//	edges.emplace(&(*found), new_edge2_1);
-				//	edges.emplace(&(*inserted), new_edge2_2);
-				//}
+				//Edge 2
+				Geometry::Edge new_edge2_1{ edge2.begin_position, intersection };
+				Geometry::Edge new_edge2_2{ intersection, edge2.end_position };
 
-				/////REMOVE INTERSECTING EDGES FROM DATA STRUCTURE
-				//data_structure_edges[i].to_remove = true;
-				//data_structure_edges[i + 1].to_remove = true;
+				///		ADD EDGES TO NEW VERTEX
+				inserted->edges.emplace_back(new_edge1_2);
+				inserted->edges.emplace_back(new_edge2_2);
 
-				/////ADD NEW EDGES WITH CORRECT STARTING POINT TO DATA STRUCTURE AT POINT WHERE EDGES WERE REMOVED
-				//DataStructure data1{};
-				//data_structure_edges.emplace_front(data1)
+				///		UPDATE EDGES OF CURRENT VERTEX
+				//Edge 1
+				auto it = std::find_if(vertices.begin(), vertices.end(), [&edge1](const Geometry::Vertex& v) { return edge1.begin_position == v.position; });
+				auto it_edge = std::find_if(it->edges.begin(), it->edges.end(), [&it](const Geometry::Edge& edge) { return edge.begin_position == it->position; });
+				it_edge->end_position = intersection;
 
-				/////REMOVE OLD EDGES FROM EDGES
+				//Edge 2
+				it = std::find_if(vertices.begin(), vertices.end(), [&edge2](const Geometry::Vertex& v) { return edge2.begin_position == v.position; });
+				it_edge = std::find_if(it->edges.begin(), it->edges.end(), [&it](const Geometry::Edge& edge) { return edge.begin_position == it->position; });
+				it_edge->end_position = intersection;
 
-				/////MAKE 2 SWEEP EVENTS PER EDGE IF COLLIDED
-				//SweepEvent event1_edge1{};
-				//event1_edge1.position = intersection;
+				///		ADD NEW EDGES TO DATA STRUCTURE
+				//Edge 1
+				DataStructure new_data_1{ new_edge1_1 };
+				data_structure_edges.insert(data_structure_edges.begin() + j + 2, new_data_1);
 
-		//	}
+				//Edge 2
+				DataStructure new_data_2 { new_edge2_1 };
+				data_structure_edges.insert(data_structure_edges.begin() + j + 3, new_data_2);
+
+				///		REMOVE ITEMS CORRESPONDING TO EDGES FROM DATA STRUCTURE
+				data_structure_edges.erase(data_structure_edges.begin() + j);
+				data_structure_edges.erase(data_structure_edges.begin() + j);
+
+
+
+			}
 
 			///D.	REMOVE FROM DATA STRUCTURE THE EDGES THAT END
-			
-			
-			
-		//}
+			erase_if(data_structure_edges, [&current_vertex](const DataStructure& d) { return d.edge.end_position == current_vertex.position; });
+
+		}
+
+		std::cout << "--- SUBDIVIDING EDGES DONE ---\n";
+
+		///		1.3: SELECTING THE EDGES
+		
+
+
 	}
 
 	bool LineLineIntersection(Elite::Vector2& intersection, const Elite::Vector2& p1, const Elite::Vector2& d1, const Elite::Vector2& p2, const Elite::Vector2& d2)
