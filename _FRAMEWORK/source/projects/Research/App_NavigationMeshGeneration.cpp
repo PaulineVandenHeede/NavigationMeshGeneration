@@ -126,8 +126,18 @@ void App_NavigationMeshGeneration::Start()
 		Elite::Vector2 v1_2 = { 12.f, -10.f };
 		Elite::Vector2 v1_3 = { 11.f, -3.f };
 
+		//- Polygon 3
+		Elite::Vector2 v2_0 = { 6.f, -2.f };
+		Elite::Vector2 v2_1 = { 2.f, -8.f };
+		Elite::Vector2 v2_2 = { 3.f, -12.f };
+		Elite::Vector2 v2_3 = { 2.f, -16.f };
+		Elite::Vector2 v2_4 = { 8.f, -12.f };
+		Elite::Vector2 v2_5 = { 11.f, -6.f };
+
 		m_pStartPolygons.push_back(new Geometry::Polygon{{ v0_0, v0_1, v0_2, v0_3 }});
 		m_pStartPolygons.push_back(new Geometry::Polygon{ { v1_0, v1_1, v1_2, v1_3 } });
+		//m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, v2_4, v2_5 } });
+
 		m_pMergedPolygon = new Geometry::Polygon{};
 
 		Geometry::MergePolygon(m_pStartPolygons, m_pMergedPolygon);
@@ -159,4 +169,7 @@ void App_NavigationMeshGeneration::Render(float deltaTime) const
 	//-- TRY OUT: TRIANGULATION OF POLYGON
 	//m_pNavMesh->DrawTriangles();
 	//m_pNavMesh->DrawCircumference();
+
+	//-- TRY OUT: MERGE POLYGONS
+	m_pMergedPolygon->Draw();
 }

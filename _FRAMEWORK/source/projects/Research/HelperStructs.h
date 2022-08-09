@@ -2,9 +2,15 @@
 #include <array>
 #include <vector>
 
-
 namespace Geometry
 {
+	enum class e_outside_polygon
+	{
+		start_outside = 0,
+		start_inside = 1,
+		start_unknown = 2,
+	};
+
 	struct Polygon;
 
 	struct Edge
@@ -12,22 +18,20 @@ namespace Geometry
 		Elite::Vector2 begin_position;
 		Elite::Vector2 end_position;
 
-		Geometry::Polygon* p_polygon;
-
 		Edge() = default;
-		Edge(const Elite::Vector2& begin_pos, const Elite::Vector2& end_pos) : begin_position{ begin_pos }, end_position{ end_pos }, p_polygon{ nullptr } {  }
-		Edge(Elite::Vector2&& begin_pos, const Elite::Vector2&& end_pos) : begin_position{ begin_pos }, end_position{ end_pos }, p_polygon{ nullptr } {  }
-		Edge(Elite::Vector2& begin_pos, const Elite::Vector2& end_pos, Geometry::Polygon* p_owner) : begin_position{ begin_pos }, end_position{ end_pos }, p_polygon{ p_owner } {  }
-		Edge(Elite::Vector2&& begin_pos, const Elite::Vector2&& end_pos, Geometry::Polygon* p_owner) : begin_position{ begin_pos }, end_position{ end_pos }, p_polygon{ p_owner } {  }
+		Edge(const Elite::Vector2& begin_pos, const Elite::Vector2& end_pos) : begin_position{ begin_pos }, end_position{ end_pos } {  }
+		Edge(Elite::Vector2&& begin_pos, const Elite::Vector2&& end_pos) : begin_position{ begin_pos }, end_position{ end_pos } {  }
 
 		Edge(const Geometry::Edge& e) = default;
-		Edge(Geometry::Edge&& e) noexcept : begin_position{ e.begin_position }, end_position{ e.end_position }, p_polygon{ e.p_polygon } {  }
+		Edge(Geometry::Edge&& e) noexcept : begin_position{ e.begin_position }, end_position{ e.end_position } {  }
 
 		Geometry::Edge& operator=(const Geometry::Edge& e)
 		{
+			if (this == &e)
+				return *this;
+
 			begin_position = e.begin_position;
 			end_position = e.end_position;
-			p_polygon = e.p_polygon;
 
 			return *this;
 		}
@@ -35,7 +39,6 @@ namespace Geometry
 		{
 			begin_position = std::move(e.begin_position);
 			end_position = std::move(e.end_position);
-			p_polygon = e.p_polygon; e.p_polygon = nullptr;
 
 			return *this;
 		}
@@ -49,12 +52,22 @@ namespace Geometry
 	struct Vertex
 	{
 		Elite::Vector2 position;
+		Geometry::Polygon* p_polygon;
 		std::vector<Geometry::Edge> edges;
+		e_outside_polygon start_outside_other_polygon = e_outside_polygon::start_unknown;
+		bool intersection = false;
+		bool processed = false;
 
-		Vertex(const Elite::Vector2& pos) : position{ pos }, edges{  } {  }
-		Vertex(Elite::Vector2&& pos) : position{ pos }, edges{  } {  }
+		Vertex(const Elite::Vector2& pos, Geometry::Polygon* p_owner) : position{ pos }, p_polygon{ p_owner }, edges{  } {  }
+		Vertex(Elite::Vector2&& pos, Geometry::Polygon* p_owner) : position{ pos }, p_polygon{ p_owner }, edges{  } {  }
 	};
 
+
+
+	inline bool operator==(const Geometry::Vertex& v1, const Geometry::Vertex& v2)
+	{
+		return v1.position == v2.position && v1.p_polygon == v2.p_polygon;
+	}
 	inline std::ostream& operator<<(std::ostream& os, const Geometry::Vertex& v)
 	{
 		os << "Vertex " << v.position << " found " << v.edges.size() << " edges: \n";
@@ -66,19 +79,27 @@ namespace Geometry
 		}
 		return os;
 	}
+	inline std::ostream& operator<<(std::ostream& os, const std::vector<Geometry::Vertex>& vertices)
+	{
+		os << "Vertices: \n";
 
+		for(const Geometry::Vertex& v : vertices)
+		{
+			os << v;
+		}
+
+		return os;
+	}
 
 
 	struct DataStructure
 	{
+		Geometry::Vertex vertex;
 		Geometry::Edge edge;
+		Geometry::Polygon* p_polygon;
+		bool to_be_removed = false;
 
-		DataStructure(const Geometry::Edge& edge)
-			: edge{ edge }
-		{
-		}
-
-
+		DataStructure(const Geometry::Vertex& vertex, const Geometry::Edge& edge) : vertex{ vertex }, edge{ edge } {  }
 	};
 
 	struct SweepEvent
@@ -144,7 +165,10 @@ namespace Geometry
 
 		void Draw() const;
 		void AddChild(Geometry::Polygon&& p);
+		void AddVertex(const Elite::Vector2& position, const Geometry::Edge& edge);
 		void Expand(float distance) const;
+
+		void Reset();
 
 		[[nodiscard]] const std::vector<Geometry::Vertex>& GetVertices() const;
 
@@ -163,5 +187,6 @@ namespace Geometry
 	void MergePolygon(const std::vector<Geometry::Polygon*>& pPolygonstoMerge, Geometry::Polygon* pMergerdPolygon);
 
 	bool LineLineIntersection(Elite::Vector2& intersection, const Elite::Vector2& p1, const Elite::Vector2& d1, const Elite::Vector2& p2, const Elite::Vector2& d2);
+	bool PointInPolygon(const Elite::Vector2& point, const Geometry::Polygon* polygon);
 }
 
