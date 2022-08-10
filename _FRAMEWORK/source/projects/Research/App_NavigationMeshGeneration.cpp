@@ -28,6 +28,8 @@ App_NavigationMeshGeneration::~App_NavigationMeshGeneration()
 	{
 		SAFE_DELETE(m_pExpandedPolygonElites[i]);
 	}
+
+	SAFE_DELETE(m_pMergedPolygon);
 }
 
 void App_NavigationMeshGeneration::Start()
@@ -136,11 +138,11 @@ void App_NavigationMeshGeneration::Start()
 
 		m_pStartPolygons.push_back(new Geometry::Polygon{{ v0_0, v0_1, v0_2, v0_3 }});
 		m_pStartPolygons.push_back(new Geometry::Polygon{ { v1_0, v1_1, v1_2, v1_3 } });
-		//m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, v2_4, v2_5 } });
+		m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, v2_4, v2_5 } });
 
 		m_pMergedPolygon = new Geometry::Polygon{};
 
-		Geometry::MergePolygon(m_pStartPolygons, m_pMergedPolygon);
+		Geometry::MergePolygons(m_pStartPolygons, m_pMergedPolygon);
 	}
 }
 

@@ -18,6 +18,7 @@ d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\egraphconne
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\efinitestatemachine.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\ebehaviortree.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\app_navigationmeshgeneration.obj
+d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\helperstructs.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\navmeshgeneration.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\navmesh.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\sdldebugrenderer2d.obj
@@ -28,6 +29,13 @@ d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\sdlwindow.o
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\eimmediateui.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\etimer_sdl.obj
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\sdlframe.obj
+d:\github\navigationmeshgeneration\_framework\bin\debug\gpp_framework.exe
+d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.ilk
+d:\github\navigationmeshgeneration\_framework\bin\debug\gpp_framework.pdb
+d:\github\navigationmeshgeneration\_framework\source\..\bin\debug\gpp_framework.pdb
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\cl.command.1.tlog
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\cl.read.1.tlog
 d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\cl.write.1.tlog
+d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\link.command.1.tlog
+d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\link.read.1.tlog
+d:\github\navigationmeshgeneration\_framework\source\tempfiles\debug\gpp_framework.tlog\link.write.1.tlog

@@ -42,6 +42,8 @@ namespace Geometry
 
 			return *this;
 		}
+
+		Elite::Vector2 Center() const { return (end_position + begin_position) / 2.f; }
 	};
 
 	inline bool operator==(const Geometry::Edge& e1, const Geometry::Edge& e2)
@@ -57,9 +59,10 @@ namespace Geometry
 		e_outside_polygon start_outside_other_polygon = e_outside_polygon::start_unknown;
 		bool intersection = false;
 		bool processed = false;
+		char identifier = ' ';
 
-		Vertex(const Elite::Vector2& pos, Geometry::Polygon* p_owner) : position{ pos }, p_polygon{ p_owner }, edges{  } {  }
-		Vertex(Elite::Vector2&& pos, Geometry::Polygon* p_owner) : position{ pos }, p_polygon{ p_owner }, edges{  } {  }
+		Vertex(const Elite::Vector2& pos, Geometry::Polygon* p_owner, char id) : position{ pos }, p_polygon{ p_owner }, edges{  }, identifier{ id } {  }
+		Vertex(Elite::Vector2&& pos, Geometry::Polygon* p_owner, char id) : position{ pos }, p_polygon{ p_owner }, edges{  }, identifier{ id } {  }
 	};
 
 
@@ -70,7 +73,7 @@ namespace Geometry
 	}
 	inline std::ostream& operator<<(std::ostream& os, const Geometry::Vertex& v)
 	{
-		os << "Vertex " << v.position << " found " << v.edges.size() << " edges: \n";
+		os << "Vertex " << v.identifier << ' ' << v.position << " found " << v.edges.size() << " edges: \n";
 		int j = 1;
 		for (auto it = v.edges.cbegin(); it != v.edges.cend(); ++it)
 		{
@@ -147,6 +150,8 @@ namespace Geometry
 
 	struct Polygon
 	{
+		static char next_id;
+
 		//circular doubly linked list
 		VertexNode* pHead = nullptr;
 		VertexNode* pEnd = nullptr;
@@ -169,6 +174,7 @@ namespace Geometry
 		void Expand(float distance) const;
 
 		void Reset();
+		void Copy(const Geometry::Polygon* p);
 
 		[[nodiscard]] const std::vector<Geometry::Vertex>& GetVertices() const;
 
@@ -184,9 +190,29 @@ namespace Geometry
 	};
 
 	void ScalePolygon(Geometry::Polygon& polygon);
-	void MergePolygon(const std::vector<Geometry::Polygon*>& pPolygonstoMerge, Geometry::Polygon* pMergerdPolygon);
+
+
+#pragma region BOOLEAN OPERATIONS ON POLYGONS
+	void MergePolygons(const std::vector<Geometry::Polygon*>& pPolygonstoMerge, Geometry::Polygon* p_merged_polygon);
+	void MergeTwoPolygons(const Geometry::Polygon* p_polygon_1, const Geometry::Polygon* p_polygon_2, Geometry::Polygon* p_merged_polygon);
+
+	void SubtractPolygonsFromBasePolygon(const std::vector<Geometry::Polygon*>& p_polygons_to_substract, const Geometry::Polygon* p_base_polygon, Geometry::Polygon* p_result_polygon);
 
 	bool LineLineIntersection(Elite::Vector2& intersection, const Elite::Vector2& p1, const Elite::Vector2& d1, const Elite::Vector2& p2, const Elite::Vector2& d2);
 	bool PointInPolygon(const Elite::Vector2& point, const Geometry::Polygon* polygon);
+
+	bool EvaluateEdgesForIntersection(Elite::Vector2& intersection, const Geometry::Edge& edge1, const Geometry::Edge& edge2);
+	void AddEdgeToVertex(std::vector<Geometry::Vertex>& vertices, Geometry::Vertex& current_vertex, const Geometry::Vertex& comparing_vertex, const Geometry::Edge& edge);
+	std::deque<Geometry::DataStructure>::iterator  InsertDataLexicographically(std::deque<Geometry::DataStructure>& data_structures, const Geometry::DataStructure& new_data);
+
+	void DetermineIntersections(std::vector<Geometry::Vertex>& original_vertices);
+
+	//different boolean operations
+	void AND_BooleanOperation(std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices);
+	void MINUS_BooleanOPeration(std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices);
+
+	void MakeContour(std::vector<Geometry::Vertex>& result_vertices, Geometry::Polygon* p_merged_polygon);
+
+#pragma endregion !BOOLEAN OPERATIONS ON POLYGONS
 }
 

@@ -3,6 +3,8 @@
 
 #include <map>
 
+char Geometry::Polygon::next_id = 'A';
+
 
 namespace Geometry
 {
@@ -177,7 +179,9 @@ namespace Geometry
 			pEnd->pNext = p_vertex;
 		pEnd = p_vertex;
 
-		Geometry::Vertex vertex{ position, this };
+		++next_id;
+
+		Geometry::Vertex vertex{ position, this, next_id };
 		vertex.edges.emplace_back(edge);
 
 		m_vertices.emplace_back(vertex);
@@ -242,11 +246,52 @@ namespace Geometry
 		static_children.clear();
 	}
 
+	void Polygon::Copy(const Geometry::Polygon* p)
+	{
+		VertexNode* p_other_vertex = p->pHead;
+
+		do
+		{
+			++size;
+			++nextIndex;
+
+			VertexNode* p_new_vertex = new VertexNode{ p_other_vertex->position };
+			p_new_vertex->pNext = pHead;
+			p_new_vertex->pPrevious = pEnd;
+			p_new_vertex->index = nextIndex;
+
+			if (pHead)
+				pHead->pPrevious = p_new_vertex;
+			else
+				pHead = p_new_vertex;
+
+			if (pEnd)
+				pEnd->pNext = p_new_vertex;
+
+			pEnd = p_new_vertex;
+
+			++next_id;
+
+			Geometry::Vertex vertex{ p_new_vertex->position, this, next_id };
+			m_vertices.emplace_back(vertex);
+
+			const size_t size_vertices = m_vertices.size();
+			if (size_vertices != 1)
+			{
+				Geometry::Vertex* reference = &m_vertices[size_vertices - 2];
+				reference->edges.emplace_back(Geometry::Edge{ reference->position, vertex.position });
+			}
+			p_other_vertex = p_other_vertex->pNext;
+		} while (p_other_vertex != p->pHead);
+
+		Geometry::Vertex* reference = &m_vertices[size - 1];
+		reference->edges.emplace_back(Geometry::Edge{ reference->position, m_vertices[0].position });
+	}
+
 	const std::vector<Geometry::Vertex>& Polygon::GetVertices() const
 	{
 		return m_vertices;
 	}
-
 
 	void Polygon::InsertBegin(const Elite::Vector2& v)
 	{
@@ -273,7 +318,8 @@ namespace Geometry
 		vertex->pPrevious = pEnd;
 		vertex->index = nextIndex;
 
-		m_vertices.emplace_back(v, this);
+		m_vertices.emplace_back(v, this, next_id);
+		++next_id;
 		const size_t size_vertices = m_vertices.size();
 		if (size_vertices != 1)
 		{
@@ -318,11 +364,9 @@ namespace Geometry
 		{
 			std::vector<Geometry::Edge>& edges = m_vertices[i].edges;
 
-			std::sort(edges.begin(), edges.end(), [](const Geometry::Edge& e1, const Geometry::Edge& e2)
+			std::ranges::sort(edges.begin(), edges.end(), [](const Geometry::Edge& e1, const Geometry::Edge& e2)
 				{
-					const Elite::Vector2 center1 = (e1.begin_position + e1.end_position) / 2.f;
-					const Elite::Vector2 center2 = (e2.begin_position + e2.end_position) / 2.f;
-					return center1.y > center2.y;
+					return e1.Center().y > e2.Center().y;
 				});
 		}
 	}
@@ -334,7 +378,8 @@ namespace Geometry
 	{
 
 	}
-	void MergePolygon(const std::vector<Geometry::Polygon*>& p_polygons_to_merge, Geometry::Polygon* p_merged_polygon)
+
+	void MergePolygons(const std::vector<Geometry::Polygon*>& p_polygons_to_merge, Geometry::Polygon* p_merged_polygon)
 	{
 		if (p_polygons_to_merge.empty())
 		{
@@ -342,313 +387,77 @@ namespace Geometry
 			return;
 		}
 
+		if(p_polygons_to_merge.size() == 1)
+		{
+			//TODO: OR DO WE COPY > KEEP ORIGINAL POLYGON
+			//SAFE_DELETE(p_merged_polygon);
+			p_merged_polygon = p_polygons_to_merge[0];
+		}
 
+		const size_t size = p_polygons_to_merge.size();
+		p_merged_polygon->Reset();
+		p_merged_polygon->Copy(p_polygons_to_merge[0]);
+		for(size_t i = 1; i < size; ++i)
+		{
+			MergeTwoPolygons(p_merged_polygon, p_polygons_to_merge[i], p_merged_polygon);
+
+			std::cout << "---- TEMPORARY MERGED POLYGON ----\n";
+			std::cout << p_merged_polygon->GetVertices() << std::endl;
+		}
+	}
+
+	void MergeTwoPolygons(const Geometry::Polygon* p_polygon_1, const Geometry::Polygon* p_polygon_2, Geometry::Polygon* p_merged_polygon)
+	{
 		///STEP 1: SUBDIVIDING THE EDGES
 		///		1.1: SORT VERTICES (FROM ALL POLYGONS) FROM LEFT TO RIGHT
 		std::vector<Geometry::Vertex> vertices; //will hold copy of vertices of original polygons to make one big polygon
 		std::vector<Geometry::Vertex> result_vertices;
-		Geometry::Polygon* p_base_polygon = p_polygons_to_merge[0];
 
 		//add all polygon vertices to one vector
-		size_t size = p_polygons_to_merge.size();
-		for(size_t i = 0; i < size; ++i)
-		{
-			const std::vector<Geometry::Vertex>& temp_vertices = p_polygons_to_merge[i]->GetVertices();
-			std::ranges::copy(temp_vertices.cbegin(), temp_vertices.cend(), std::back_inserter(vertices));
-		}
+		const std::vector<Geometry::Vertex>& temp_vertices1 = p_polygon_1->GetVertices();
+		std::ranges::copy(temp_vertices1.cbegin(), temp_vertices1.cend(), std::back_inserter(vertices));
+		const std::vector<Geometry::Vertex>& temp_vertices2 = p_polygon_2->GetVertices();
+		std::ranges::copy(temp_vertices2.cbegin(), temp_vertices2.cend(), std::back_inserter(vertices));
+
 
 		std::ranges::sort(vertices.begin(), vertices.end(), [](const Geometry::Vertex& v0, const Geometry::Vertex& v1)
-		{
-			if (Elite::AreEqual(v0.position.x, v1.position.x))
 			{
-				return v0.position.y < v1.position.y;
-			}
-			return v0.position.x < v1.position.x;
-		});
-		
-		///		1.2: SWEEP ALGORITHM
-		std::deque<Geometry::DataStructure> data_structure_edges;
-		std::vector<Geometry::SweepEvent> events;
-
-		for (size_t i = 0; i < vertices.size(); ++i) //we need vertices.size() > because vector grows during the sweep algorithm
-		{
-			///A.	GET EDGES FROM VERTICES
-			const Geometry::Vertex& current_vertex = vertices[i];
-			auto potential_edges = current_vertex.edges;
-
-			std::cout << current_vertex << std::endl;
-
-			///B.	ADD EDGES TO DATA STRUCTURE
-			const size_t previous_size = data_structure_edges.size();
-			for(const Geometry::Edge& edge :potential_edges)
-			{
-				DataStructure data{ current_vertex, edge };
-				data.p_polygon = current_vertex.p_polygon;
-				data_structure_edges.emplace_front(data);
-			}
-
-			std::sort(data_structure_edges.begin(), data_structure_edges.end(), [](const DataStructure& d1, const DataStructure& d2)
+				if (Elite::AreEqual(v0.position.x, v1.position.x))
 				{
-					Elite::Vector2 c1 = d1.edge.end_position - d1.edge.begin_position;
-					Elite::Vector2 c2 = d2.edge.end_position - d2.edge.begin_position;
-
-					if (Elite::AreEqual(c1.x, c2.x))
-					{
-						return c1.y < c2.y;
-					}
-
-					return c1.x < c2.x;
-				});
-
-
-			///C.	CHECK FOR COLLISION WITH EDGES FROM OTHER POLYGONS
-			const size_t count = data_structure_edges.size() - previous_size;
-			auto data_it = data_structure_edges.begin();
-			
-			for (size_t j = 0; j < count; ++j)
-			{
-				DataStructure data1 = data_structure_edges[j];
-				const Geometry::Edge edge1 = data1.edge;
-
-				data_it = std::find_if(data_structure_edges.begin() + j, data_structure_edges.end(), [&current_vertex](const DataStructure& data)
-					{
-						return data.p_polygon != current_vertex.p_polygon;
-					});
-
-				if (data_it == data_structure_edges.end())
-					continue;
-
-				const Geometry::Edge edge2 = (*data_it).edge;
-				///		COLLISION ALGORITHM
-				Elite::Vector2 direction1 = edge1.end_position - edge1.begin_position;
-				Elite::Vector2 direction2 = edge2.end_position - edge2.begin_position;
-				Elite::Vector2 intersection{};
-
-				const bool result = Geometry::LineLineIntersection(intersection, data1.vertex.position, direction1, (*data_it).vertex.position, direction2);
-				if (!result)
-					continue;
-
-				//Filter results of intersection
-				// > the point of intersection cannot be a vertex that defines the edges
-				// > if it is a point of one edge it automatically is a point of the other edge as well
-				// > thus, it is enough to check one edge
-				if ((Elite::AreEqual(intersection.x, edge1.begin_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.begin_position.y, 0.00001f))
-					|| (Elite::AreEqual(intersection.x, edge1.end_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.end_position.y, 0.00001f)))
-					continue;
-
-				// > Intersection needs to lie on one of the edges
-				if ((intersection.x < min(edge1.begin_position.x, edge1.end_position.x) || intersection.x > max(edge1.begin_position.x, edge1.end_position.x))
-					|| (intersection.x < min(edge2.begin_position.x, edge2.end_position.x) || intersection.x > max(edge2.begin_position.x, edge2.end_position.x)))
-					continue;
-				if ((intersection.y < min(edge1.begin_position.y, edge1.end_position.y) || intersection.y > max(edge1.begin_position.y, edge1.end_position.y))
-					|| (intersection.y < min(edge2.begin_position.y, edge2.end_position.y) || intersection.y > max(edge2.begin_position.y, edge2.end_position.y)))
-					continue;
-
-				///		ADD INTERSECTION AS NEW VERTEX TO VERTICES
-				Geometry::Vertex intersection_vertex{ intersection, p_merged_polygon };
-				intersection_vertex.intersection = true;
-				//find element just after intersection
-				auto found = std::find_if(vertices.cbegin(), vertices.cend(), [&intersection](const Geometry::Vertex& v)
-					{
-						return v.position.x > intersection.x;
-					});
-				auto inserted = vertices.insert(found, intersection_vertex);
-
-				///		CHECK IF INSIDE OTHER POLYGON
-				//start point 1
-				Geometry::Vertex& begin_vertex1 = data_structure_edges[j].vertex;
-				Geometry::Vertex& begin_vertex2 = data_structure_edges[j + 1].vertex;
-
-				const bool result1 = PointInPolygon(begin_vertex1.position, begin_vertex2.p_polygon);
-				begin_vertex1.start_outside_other_polygon = static_cast<e_outside_polygon>(result1);
-
-				const bool result2 = PointInPolygon(begin_vertex2.position, begin_vertex1.p_polygon);
-				begin_vertex2.start_outside_other_polygon = static_cast<e_outside_polygon>(result2);
-
-#ifdef DEBUG
-				std::cout << "Point " << edge1.begin_position << "is in polygon with point" << edge2.begin_position << " returned " << result1 << '\n';
-				std::cout << "Point " << edge2.begin_position << "is in polygon with point" << edge1.begin_position << " returned " << result2 << '\n';
-#endif
-
-				///		CREATE NEW EDGES
-				//Edge 1
-				Geometry::Edge new_edge1_1{ edge1.begin_position, intersection };
-
-				//Edge 2
-				Geometry::Edge new_edge2_1{ edge2.begin_position, intersection };
-
-				///		ADD EDGES TO NEW VERTEX
-				if (!PointInPolygon(edge1.end_position, begin_vertex2.p_polygon))
-				{
-					Geometry::Edge new_edge1_2{ intersection, edge1.end_position };
-					inserted->edges.emplace_back(new_edge1_2);
+					return v0.position.y < v1.position.y;
 				}
-				else
-				{
-					auto found_end = std::find_if(vertices.begin(), vertices.end(), [&edge1](Geometry::Vertex& vertex)
-						{
-							return vertex.position == edge1.end_position;
-						});
-					found_end->start_outside_other_polygon = e_outside_polygon::start_inside;
-				}
+				return v0.position.x < v1.position.x;
+			});
 
-				if (!PointInPolygon(edge2.end_position, begin_vertex1.p_polygon))
-				{
-					Geometry::Edge new_edge2_2{ intersection, edge2.end_position };
-					inserted->edges.emplace_back(new_edge2_2);
-				}
-				else
-				{
-					auto found_end = std::find_if(vertices.begin(), vertices.end(), [&edge2](Geometry::Vertex& vertex)
-						{
-							return vertex.position == edge2.end_position;
-						});
-					found_end->start_outside_other_polygon = e_outside_polygon::start_inside;
-				}
+		DetermineIntersections(vertices);
 
-				inserted->start_outside_other_polygon = static_cast<e_outside_polygon>(!(result1 || result2));
-
-				///		UPDATE EDGES OF CURRENT VERTEX
-				//Edge 1
-				auto vertex_it = std::find_if(vertices.begin(), vertices.end(), [&edge1](const Geometry::Vertex& v) { return edge1.begin_position == v.position; });
-				auto it_edge = std::find_if(vertex_it->edges.begin(), vertex_it->edges.end(), [&vertex_it](const Geometry::Edge& edge) { return edge.begin_position == vertex_it->position; });
-				vertex_it->start_outside_other_polygon = static_cast<e_outside_polygon>(result1);
-				it_edge->end_position = intersection;
-
-				//Edge 2
-				vertex_it = std::find_if(vertices.begin(), vertices.end(), [&edge2](const Geometry::Vertex& v) { return edge2.begin_position == v.position; });
-				it_edge = std::find_if(vertex_it->edges.begin(), vertex_it->edges.end(), [&vertex_it](const Geometry::Edge& edge) { return edge.begin_position == vertex_it->position; });
-				vertex_it->start_outside_other_polygon = static_cast<e_outside_polygon>(result2);
-				it_edge->end_position = intersection;
-
-				///		ADD NEW EDGES TO DATA STRUCTURE
-				//Edge 1
-				DataStructure new_data_1{ data1.vertex, new_edge1_1 };
-				DataStructure new_data_2{ (*data_it).vertex, new_edge2_1 };
-
-				///		REMOVE ITEMS CORRESPONDING TO EDGES FROM DATA STRUCTURE
-				
-				data_structure_edges.erase(data_it);
-				data_structure_edges.erase(data_structure_edges.begin() + j);
-
-				//Edge 2
-				data_structure_edges.insert(data_structure_edges.begin() + j, new_data_1);
-				data_structure_edges.insert(data_structure_edges.begin() + j + 1, new_data_2);
-
-			}
-
-			///D.	REMOVE FROM DATA STRUCTURE THE EDGES THAT END
-			erase_if(data_structure_edges, [&current_vertex](const DataStructure& d)
-				{
-					return d.edge.end_position == current_vertex.position;
-				});
-
-			
-		}
-
+#ifdef _DEBUG
 		std::cout << "--- SUBDIVIDING EDGES DONE ---\n";
+#endif
 
 		///STEP 2: SELECTING THE EDGES
 		///		2.1	ADD TO RESULT
+#ifdef _DEBUG
 		std::cout << vertices << std::endl;
-		std::copy_if(vertices.cbegin(), vertices.cend(), std::back_inserter(result_vertices), [](const Vertex& vertex)
-			{
-				if(vertex.start_outside_other_polygon != e_outside_polygon::start_inside)
-					return true;
+#endif
+		AND_BooleanOperation(vertices, result_vertices);
 
-				if (vertex.intersection)
-					return true;
-				
-				return false;
-			});
-
-		std::for_each(result_vertices.begin(), result_vertices.end(), [](Vertex& vertex)
-			{
-				if(vertex.start_outside_other_polygon == e_outside_polygon::start_inside)
-					vertex.edges.clear();
-			});
-
-
+#ifdef _DEBUG
 		std::cout << result_vertices << std::endl;
-
 		std::cout << "--- SELECTING THE EDGES DONE ---\n";
+#endif
 
 		///STEP 3 : MAKE FINAL CONTOUR
 		p_merged_polygon->Reset();
-		Geometry::Vertex* p_current_vertex = &result_vertices.front();
-		do
-		{
-			//Process vertex
-			p_current_vertex->processed = true;
+		MakeContour(result_vertices, p_merged_polygon);
 
-			if(!p_current_vertex->edges.empty())
-			{
-				//take last edge and make endpoint the current_vertex
-				Geometry::Edge& edge = p_current_vertex->edges.back();
-
-				auto found = std::find_if(result_vertices.begin(), result_vertices.end(), [&edge](const Geometry::Vertex& v)
-					{
-						return v.position == edge.end_position && !v.processed;
-					});
-
-				if(found == result_vertices.cend())
-				{
-					//end algorithm
-					Geometry::Edge e{ p_current_vertex->position, result_vertices.front().position };
-					p_merged_polygon->AddVertex(p_current_vertex->position, e);
-
-					p_current_vertex = &result_vertices.front();
-					continue;
-				}
-
-				//add vertex
-				p_merged_polygon->AddVertex(p_current_vertex->position, edge);
-				p_current_vertex->edges.pop_back();
-
-				p_current_vertex = &(*found);
-			}
-			else
-			{
-				//look in result vertices for point with that endpoint
-				Geometry::Edge found_edge;
-				auto found = std::find_if(result_vertices.begin(), result_vertices.end(), [&p_current_vertex, &found_edge](const Geometry::Vertex& v)
-					{
-						bool found = false;
-						for (const Geometry::Edge& e : v.edges)
-						{
-							if (e.end_position == p_current_vertex->position)
-							{
-								found = true;
-								found_edge = e;
-							}
-						}
-						return found;
-					});
-
-				if(found == result_vertices.end())
-				{
-					//end algorithm
-					Geometry::Edge e{ p_current_vertex->position, result_vertices.front().position };
-					p_merged_polygon->AddVertex(p_current_vertex->position, e);
-
-					p_current_vertex = &result_vertices.front();
-					continue;
-				}
-
-				//add vertex
-				Geometry::Edge added_edge{ found_edge.end_position, found_edge.begin_position };
-				p_merged_polygon->AddVertex(p_current_vertex->position, added_edge);
-				erase(found->edges, found_edge);
-
-				p_current_vertex = &(*found);
-			}
-			
-		} while (p_current_vertex != &result_vertices.front());
-
-
-
-
+#ifdef _DEBUG
 		std::cout << "---- END MERGING ALGORITHM ---\n";
+#endif 
+	}
+
+	void SubtractPolygonsFromBasePolygon(const std::vector<Geometry::Polygon*>& p_polygons_to_substract, const Geometry::Polygon* p_base_polygon, Geometry::Polygon* p_result_polygon)
+	{
 	}
 
 	bool LineLineIntersection(Elite::Vector2& intersection, const Elite::Vector2& p1, const Elite::Vector2& d1, const Elite::Vector2& p2, const Elite::Vector2& d2)
@@ -735,4 +544,296 @@ namespace Geometry
 		return !(count % 2 == 0);
 	}
 
+	bool EvaluateEdgesForIntersection(Elite::Vector2& intersection, const Geometry::Edge& edge1, const Geometry::Edge& edge2)
+	{
+		///		COLLISION ALGORITHM
+		const Elite::Vector2 direction1 = edge1.end_position - edge1.begin_position;
+		const Elite::Vector2 direction2 = edge2.end_position - edge2.begin_position;
+
+		const bool result = Geometry::LineLineIntersection(intersection, edge1.begin_position, direction1, edge2.begin_position, direction2);
+		if (!result)
+			return false;
+
+		//Filter results of intersection
+		// > the point of intersection cannot be a vertex that defines the edges
+		// > if it is a point of one edge it automatically is a point of the other edge as well
+		// > thus, it is enough to check one edge
+		if ((Elite::AreEqual(intersection.x, edge1.begin_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.begin_position.y, 0.00001f))
+			|| (Elite::AreEqual(intersection.x, edge1.end_position.x, 0.00001f) && Elite::AreEqual(intersection.y, edge1.end_position.y, 0.00001f)))
+			return false;
+
+		// > Intersection needs to lie on one of the edges
+		if ((intersection.x < min(edge1.begin_position.x, edge1.end_position.x) || intersection.x > max(edge1.begin_position.x, edge1.end_position.x))
+			|| (intersection.x < min(edge2.begin_position.x, edge2.end_position.x) || intersection.x > max(edge2.begin_position.x, edge2.end_position.x)))
+			return false;
+		if ((intersection.y < min(edge1.begin_position.y, edge1.end_position.y) || intersection.y > max(edge1.begin_position.y, edge1.end_position.y))
+			|| (intersection.y < min(edge2.begin_position.y, edge2.end_position.y) || intersection.y > max(edge2.begin_position.y, edge2.end_position.y)))
+			return false;
+
+		return true;
+	}
+
+	void AddEdgeToVertex(std::vector<Geometry::Vertex>& vertices, Geometry::Vertex& current_vertex, const Geometry::Vertex& comparing_vertex, const Geometry::Edge& edge)
+	{
+		current_vertex.edges.emplace_back(edge);
+		if (PointInPolygon(edge.end_position, comparing_vertex.p_polygon))
+		{
+			auto found_end = std::find_if(vertices.begin(), vertices.end(), [&edge](Geometry::Vertex& vertex)
+				{
+					return vertex.position == edge.end_position;
+				});
+			//update original vertex
+			found_end->start_outside_other_polygon = e_outside_polygon::start_inside;
+		}
+	}
+
+	std::deque<Geometry::DataStructure>::iterator InsertDataLexicographically(std::deque<Geometry::DataStructure>& data_structures, const Geometry::DataStructure& new_data)
+	{
+		auto current_data_it = std::find_if(data_structures.begin(), data_structures.end(), [&new_data](const DataStructure& d)
+			{
+				Elite::Vector2 c1 = new_data.edge.Center();
+				Elite::Vector2 c2 = d.edge.Center();
+
+				if (Elite::AreEqual(c1.x, c2.x))
+				{
+					return c2.y < c1.y; //you want to insert it before the first one that is bigger;
+				}
+
+				return c2.x > c1.x; //if it doesn't find one that is equal then insert before the first one that is bigger on x.
+			});
+
+		current_data_it = data_structures.insert(current_data_it, new_data);
+
+		return current_data_it;
+	}
+
+	void DetermineIntersections(std::vector<Geometry::Vertex>& original_vertices)
+	{
+		///		1.2: SWEEP ALGORITHM
+		std::deque<Geometry::DataStructure> data_structure_edges;
+		std::vector<Geometry::SweepEvent> events;
+
+		for (size_t i = 0; i < original_vertices.size(); ++i) //we need vertices.size() > because vector grows during the sweep algorithm
+		{
+			///A.	GET EDGES FROM VERTICES
+			const Geometry::Vertex& current_vertex = original_vertices[i];
+			auto potential_edges = current_vertex.edges;
+
+			///C.	REMOVE FROM DATA STRUCTURE THE EDGES THAT END
+			erase_if(data_structure_edges, [&current_vertex, &original_vertices](const DataStructure& d)
+				{
+					return d.edge.end_position == current_vertex.position;
+				});
+
+#ifdef _DEBUG
+			std::cout << current_vertex << std::endl;
+#endif
+
+			///B.	ADD EDGES TO DATA STRUCTURE
+			std::vector<std::deque<Geometry::DataStructure>::iterator> potential_intersections;
+			for (const Geometry::Edge& edge : potential_edges)
+			{
+				DataStructure current_data{ current_vertex, edge };
+				current_data.p_polygon = current_vertex.p_polygon;
+
+
+				auto current_data_it = InsertDataLexicographically(data_structure_edges, current_data);
+
+				///D.	CHECK FOR COLLISION WITH EDGES FROM OTHER POLYGONS
+				///they should be from other polygon
+
+				auto test_data_it = data_structure_edges.begin();
+				do
+				{
+					test_data_it = std::find_if(test_data_it, data_structure_edges.end(),
+						[&current_data_it](const DataStructure& d) { return current_data_it->p_polygon != d.p_polygon; });
+
+					if (test_data_it != data_structure_edges.end())
+					{
+						potential_intersections.emplace_back(test_data_it);
+						++test_data_it; //else we don't move along the vector
+					}
+
+				} while (test_data_it != data_structure_edges.end());
+
+				const size_t count = potential_intersections.size(); //only check for the new edges
+				for (size_t j = 0; j < count; ++j)
+				{
+					const Geometry::Edge edge1 = current_data_it->edge;
+					const Geometry::Edge edge2 = potential_intersections[j]->edge;
+					Elite::Vector2 intersection{};
+
+					const bool result = EvaluateEdgesForIntersection(intersection, edge1, edge2);
+
+					if (!result)
+						continue;
+
+					///		ADD INTERSECTION AS NEW VERTEX TO VERTICES
+					Geometry::Vertex intersection_vertex{ intersection, nullptr, Geometry::Polygon::next_id };
+					++Geometry::Polygon::next_id;
+					intersection_vertex.intersection = true;
+					//find element just after intersection
+					auto found = std::ranges::find_if(original_vertices.cbegin(), original_vertices.cend(), [&intersection](const Geometry::Vertex& v)
+						{
+							return v.position.x > intersection.x;
+						});
+					auto inserted = original_vertices.insert(found, intersection_vertex);
+
+					///		CHECK IF INSIDE OTHER POLYGON
+					Geometry::Vertex& begin_vertex1 = current_data_it->vertex;
+					Geometry::Vertex& begin_vertex2 = potential_intersections[j]->vertex;
+
+					const bool result1 = PointInPolygon(begin_vertex1.position, begin_vertex2.p_polygon);
+					begin_vertex1.start_outside_other_polygon = static_cast<e_outside_polygon>(result1);
+
+					const bool result2 = PointInPolygon(begin_vertex2.position, begin_vertex1.p_polygon);
+					begin_vertex2.start_outside_other_polygon = static_cast<e_outside_polygon>(result2);
+
+#ifdef _DEBUG
+					std::cout << "Point " << edge1.begin_position << "is in polygon with point" << edge2.begin_position << " returned " << result1 << '\n';
+					std::cout << "Point " << edge2.begin_position << "is in polygon with point" << edge1.begin_position << " returned " << result2 << '\n';
+#endif
+
+					///		SPLIT UP EDGES CORRESPONDING TO INTERSECTION
+					Geometry::Edge new_edge1_1{ edge1.begin_position, intersection };
+					Geometry::Edge new_edge1_2{ intersection, edge1.end_position };
+
+					Geometry::Edge new_edge2_1{ edge2.begin_position, intersection };
+					Geometry::Edge new_edge2_2{ intersection, edge2.end_position };
+
+					///		ADD EDGES TO NEW VERTEX
+					AddEdgeToVertex(original_vertices, *inserted, begin_vertex2, new_edge1_2);
+					AddEdgeToVertex(original_vertices, *inserted, begin_vertex1, new_edge2_2);
+
+					///		UPDATE CURRENT VERTEX
+					inserted->start_outside_other_polygon = static_cast<e_outside_polygon>(!(result1 || result2));
+					//Need to update original vertex
+					//Edge 1
+					auto vertex_it = std::ranges::find_if(original_vertices.begin(), original_vertices.end(), [&edge1](const Geometry::Vertex& v) { return edge1.begin_position == v.position; });
+					auto it_edge = std::ranges::find_if(vertex_it->edges.begin(), vertex_it->edges.end(), [&vertex_it](const Geometry::Edge& edge) { return edge.begin_position == vertex_it->position; });
+					vertex_it->start_outside_other_polygon = static_cast<e_outside_polygon>(result1);
+					it_edge->end_position = intersection;
+					//Edge 2
+					vertex_it = std::ranges::find_if(original_vertices.begin(), original_vertices.end(), [&edge2](const Geometry::Vertex& v) { return edge2.begin_position == v.position; });
+					it_edge = std::ranges::find_if(vertex_it->edges.begin(), vertex_it->edges.end(), [&vertex_it](const Geometry::Edge& edge) { return edge.begin_position == vertex_it->position; });
+					vertex_it->start_outside_other_polygon = static_cast<e_outside_polygon>(result2);
+					it_edge->end_position = intersection;
+
+					///ADD NEW EDGES TO DATA STRUCTURE
+					current_data_it->edge = new_edge1_1;
+					potential_intersections[j]->edge = new_edge2_1;
+				}
+				potential_intersections.clear();
+			}
+		}
+	}
+
+	void AND_BooleanOperation(std::vector<Geometry::Vertex>& original_vertices,
+		std::vector<Geometry::Vertex>& result_vertices)
+	{
+		std::ranges::copy_if(original_vertices.cbegin(), original_vertices.cend(), std::back_inserter(result_vertices), [](const Vertex& vertex)
+			{
+				if (vertex.start_outside_other_polygon != e_outside_polygon::start_inside)
+					return true;
+
+				if (vertex.intersection)
+					return true;
+
+				return false;
+			});
+
+		std::ranges::for_each(result_vertices.begin(), result_vertices.end(), [&original_vertices](Vertex& vertex)
+			{
+				if (vertex.intersection)
+				{
+					//check if it has edges that lead towards an inside vertex
+					erase_if(vertex.edges, [&original_vertices](const Geometry::Edge& edge)
+						{
+							const auto it = std::ranges::find_if(original_vertices.cbegin(), original_vertices.cend(),
+								[&edge](const Geometry::Vertex& vertex) { return edge.end_position == vertex.position; });
+							if (it != original_vertices.cend())
+							{
+								return it->start_outside_other_polygon == e_outside_polygon::start_inside;
+							}
+							return false;
+						});
+				}
+			});
+	}
+
+	void MINUS_BooleanOPeration(std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices)
+	{
+
+	}
+
+	void MakeContour(std::vector<Geometry::Vertex>& result_vertices, Geometry::Polygon* p_merged_polygon)
+	{
+		Geometry::Vertex* p_current_vertex = &result_vertices.front();
+		do
+		{
+			//Process vertex
+			if (!p_current_vertex->edges.empty())
+			{
+				//take last edge and make endpoint the current_vertex
+				Geometry::Edge& edge = p_current_vertex->edges.back();
+
+				auto found = std::ranges::find_if(result_vertices.begin(), result_vertices.end(), [&edge](const Geometry::Vertex& v)
+					{
+						return v.position == edge.end_position;
+					});
+
+				if (found == result_vertices.cend())
+				{
+					//end algorithm
+					Geometry::Edge e{ p_current_vertex->position, result_vertices.front().position };
+					p_merged_polygon->AddVertex(p_current_vertex->position, e);
+
+					p_current_vertex = &result_vertices.front();
+					continue;
+				}
+
+				//add vertex
+				p_merged_polygon->AddVertex(p_current_vertex->position, edge);
+				p_current_vertex->edges.pop_back();
+
+				p_current_vertex = &(*found);
+			}
+			else
+			{
+				//look in result vertices for point with that endpoint
+				Geometry::Edge found_edge;
+				auto found = std::ranges::find_if(result_vertices.begin(), result_vertices.end(), [&p_current_vertex, &found_edge](const Geometry::Vertex& v)
+					{
+						bool found = false;
+						for (const Geometry::Edge& e : v.edges)
+						{
+							if (e.end_position == p_current_vertex->position)
+							{
+								found = true;
+								found_edge = e;
+							}
+						}
+						return found;
+					});
+
+				if (found == result_vertices.end())
+				{
+					//end algorithm
+					Geometry::Edge e{ p_current_vertex->position, result_vertices.front().position };
+					p_merged_polygon->AddVertex(p_current_vertex->position, e);
+
+					p_current_vertex = &result_vertices.front();
+					continue;
+				}
+
+				//add vertex
+				Geometry::Edge added_edge{ found_edge.end_position, found_edge.begin_position };
+				p_merged_polygon->AddVertex(p_current_vertex->position, added_edge);
+				std::erase(found->edges, found_edge);
+
+				p_current_vertex = &(*found);
+			}
+
+		} while (p_current_vertex != &result_vertices.front());
+	}
 }
