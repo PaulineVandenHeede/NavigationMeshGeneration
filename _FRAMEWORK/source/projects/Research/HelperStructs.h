@@ -2,6 +2,8 @@
 #include <array>
 #include <vector>
 
+#include "HelperStructs.h"
+
 namespace Geometry
 {
 	enum class e_outside_polygon
@@ -197,6 +199,7 @@ namespace Geometry
 	void MergeTwoPolygons(const Geometry::Polygon* p_polygon_1, const Geometry::Polygon* p_polygon_2, Geometry::Polygon* p_merged_polygon);
 
 	void SubtractPolygonsFromBasePolygon(const std::vector<Geometry::Polygon*>& p_polygons_to_substract, const Geometry::Polygon* p_base_polygon, Geometry::Polygon* p_result_polygon);
+	void SubtractPolygonFronBase(const Geometry::Polygon* p_polygon_subtract, const Geometry::Polygon* p_base_polygon, Geometry::Polygon* p_result_polygon);
 
 	bool LineLineIntersection(Elite::Vector2& intersection, const Elite::Vector2& p1, const Elite::Vector2& d1, const Elite::Vector2& p2, const Elite::Vector2& d2);
 	bool PointInPolygon(const Elite::Vector2& point, const Geometry::Polygon* polygon);
@@ -209,7 +212,7 @@ namespace Geometry
 
 	//different boolean operations
 	void AND_BooleanOperation(std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices);
-	void MINUS_BooleanOPeration(std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices);
+	void MINUS_BooleanOperation(const Geometry::Polygon* const p_base_polygon, std::vector<Geometry::Vertex>& original_vertices, std::vector<Geometry::Vertex>& result_vertices);
 
 	void MakeContour(std::vector<Geometry::Vertex>& result_vertices, Geometry::Polygon* p_merged_polygon);
 

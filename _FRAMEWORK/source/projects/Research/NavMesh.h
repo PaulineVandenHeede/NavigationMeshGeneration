@@ -15,7 +15,7 @@ public:
 	void DrawTriangles() const;
 
 private:
-	std::unordered_map<uint64_t,Elite::Vertex> points;
+	std::unordered_map<uint64_t, Elite::Vector2> points;
 	std::vector<Geometry::Triangle> triangles;
 };
 

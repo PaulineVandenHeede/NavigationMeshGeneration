@@ -30,6 +30,7 @@ App_NavigationMeshGeneration::~App_NavigationMeshGeneration()
 	}
 
 	SAFE_DELETE(m_pMergedPolygon);
+	SAFE_DELETE(m_pBasePolygon);
 }
 
 void App_NavigationMeshGeneration::Start()
@@ -117,32 +118,80 @@ void App_NavigationMeshGeneration::Start()
 
 	//-- TRY OUT: MERGE POLYGONS
 	{
-		Elite::Vector2 v0_0 = { 2.f, 4.f };
-		Elite::Vector2 v0_1 = { 3.f, -4.f };
-		Elite::Vector2 v0_2 = { 9.f, -4.f };
-		Elite::Vector2 v0_3 = { 8.f, 4.f };
+		//-Polygon1
+		//Elite::Vector2 v0_0 = { 2.f, 4.f };
+		//Elite::Vector2 v0_1 = { 3.f, -4.f };
+		//Elite::Vector2 v0_2 = { 9.f, -4.f };
+		//Elite::Vector2 v0_3 = { 8.f, 4.f };
+		Elite::Vector2 v0_0 = { 0.f, 6.f };
+		Elite::Vector2 v0_1 = { 2.f, 0.f };
+		Elite::Vector2 v0_2 = { 10.f, 0.f };
+		Elite::Vector2 v0_3 = { 8.f, 6.f };
 
-		//- Polygon 2
-		Elite::Vector2 v1_0 = { 8.f, -3.f };
-		Elite::Vector2 v1_1 = { 7.f, -10.f };
-		Elite::Vector2 v1_2 = { 12.f, -10.f };
-		Elite::Vector2 v1_3 = { 11.f, -3.f };
+		////- Polygon 2
+		//Elite::Vector2 v1_0 = { 8.f, -3.f };
+		//Elite::Vector2 v1_1 = { 7.f, -10.f };
+		//Elite::Vector2 v1_2 = { 12.f, -10.f };
+		//Elite::Vector2 v1_3 = { 11.f, -3.f };
+		Elite::Vector2 v1_0 = { 8.f, 2.f };
+		Elite::Vector2 v1_1 = { 6.f, -2.f };
+		Elite::Vector2 v1_2 = { 12.f, -6.f };
+		Elite::Vector2 v1_3 = { 16.f, 0.f };
 
-		//- Polygon 3
-		Elite::Vector2 v2_0 = { 6.f, -2.f };
-		Elite::Vector2 v2_1 = { 2.f, -8.f };
-		Elite::Vector2 v2_2 = { 3.f, -12.f };
-		Elite::Vector2 v2_3 = { 2.f, -16.f };
-		Elite::Vector2 v2_4 = { 8.f, -12.f };
-		Elite::Vector2 v2_5 = { 11.f, -6.f };
+		////- Polygon 3
+		//Elite::Vector2 v2_0 = { 6.f, -2.f };
+		//Elite::Vector2 v2_1 = { 2.f, -8.f };
+		//Elite::Vector2 v2_2 = { 3.f, -12.f };
+		//Elite::Vector2 v2_3 = { 2.f, -16.f };
+		//Elite::Vector2 v2_4 = { 8.f, -12.f };
+		//Elite::Vector2 v2_5 = { 11.f, -6.f };
+		Elite::Vector2 v2_0 = { 6.f, 8.f };
+		Elite::Vector2 v2_1 = { 2.f, 2.f };
+		Elite::Vector2 v2_2 = { 8.f, -6.f };
+		Elite::Vector2 v2_3 = { 6.f, 2.f };
 
 		m_pStartPolygons.push_back(new Geometry::Polygon{{ v0_0, v0_1, v0_2, v0_3 }});
 		m_pStartPolygons.push_back(new Geometry::Polygon{ { v1_0, v1_1, v1_2, v1_3 } });
-		m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, v2_4, v2_5 } });
+		m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, /*v2_4, v2_5*/ } });
 
 		m_pMergedPolygon = new Geometry::Polygon{};
 
 		Geometry::MergePolygons(m_pStartPolygons, m_pMergedPolygon);
+	}
+
+	//-- TRY OUT: SUBTRACTING POLYGONS
+	{
+		//Elite::Vector2 v0_0 = { 2.f, 4.f };
+		//Elite::Vector2 v0_1 = { 3.f, -4.f };
+		//Elite::Vector2 v0_2 = { 9.f, -4.f };
+		//Elite::Vector2 v0_3 = { 8.f, 4.f };
+
+		////- Polygon 2
+		//Elite::Vector2 v1_0 = { 8.f, -3.f };
+		//Elite::Vector2 v1_1 = { 7.f, -10.f };
+		//Elite::Vector2 v1_2 = { 12.f, -10.f };
+		//Elite::Vector2 v1_3 = { 11.f, -3.f };
+
+		////- Polygon 3
+		///*Elite::Vector2 v2_0 = { 6.f, -2.f };
+		//Elite::Vector2 v2_1 = { 2.f, -8.f };
+		//Elite::Vector2 v2_2 = { 3.f, -12.f };
+		//Elite::Vector2 v2_3 = { 2.f, -16.f };
+		//Elite::Vector2 v2_4 = { 8.f, -12.f };
+		//Elite::Vector2 v2_5 = { 11.f, -6.f };*/
+
+		////m_pStartPolygons.push_back(new Geometry::Polygon{ { v0_0, v0_1, v0_2, v0_3 } });
+		//m_pStartPolygons.push_back(new Geometry::Polygon{ { v1_0, v1_1, v1_2, v1_3 } });
+		////m_pStartPolygons.push_back(new Geometry::Polygon{ { v2_0, v2_1, v2_2, v2_3, v2_4, v2_5 } });
+
+		//m_pBasePolygon = new Geometry::Polygon{ { v0_0, v0_1, v0_2, v0_3 } };
+		//m_pMergedPolygon = new Geometry::Polygon{};
+
+		//Geometry::SubtractPolygonsFromBasePolygon(m_pStartPolygons, m_pBasePolygon, m_pMergedPolygon);
+
+		////triangulate
+		//NavMeshGeneration generator{};
+		//m_pNavMesh = generator.CreateNavMesh(*m_pMergedPolygon, {});
 	}
 }
 
@@ -169,9 +218,13 @@ void App_NavigationMeshGeneration::Render(float deltaTime) const
 	}
 
 	//-- TRY OUT: TRIANGULATION OF POLYGON
-	//m_pNavMesh->DrawTriangles();
-	//m_pNavMesh->DrawCircumference();
+	if(m_pNavMesh)
+	{
+		m_pNavMesh->DrawTriangles();
+		m_pNavMesh->DrawCircumference();
+	}
 
 	//-- TRY OUT: MERGE POLYGONS
-	m_pMergedPolygon->Draw();
+	if(m_pMergedPolygon)
+		m_pMergedPolygon->Draw();
 }

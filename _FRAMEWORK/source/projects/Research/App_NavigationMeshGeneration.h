@@ -26,6 +26,7 @@ private:
 	std::vector<Geometry::Polygon*> m_pStartPolygons;
 	std::vector<Geometry::Polygon*> m_pExpandedPolygons;
 	Geometry::Polygon* m_pMergedPolygon;
+	Geometry::Polygon* m_pBasePolygon;
 
 	std::vector<Elite::Polygon*> m_pStartPolygonElites;
 	std::vector<Elite::Polygon*> m_pExpandedPolygonElites;

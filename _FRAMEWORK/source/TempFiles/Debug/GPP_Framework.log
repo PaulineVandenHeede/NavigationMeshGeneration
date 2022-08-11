@@ -1,9 +1,3 @@
-﻿  main.cpp
-  App_NavigationMeshGeneration.cpp
-  HelperStructs.cpp
-D:\Github\NavigationMeshGeneration\_FRAMEWORK\source\projects\Research\HelperStructs.cpp(287,50): warning C4244: 'argument': conversion from 'uint64_t' to 'const unsigned int', possible loss of data
-  NavMesh.cpp
-  NavMeshGeneration.cpp
-  Generating Code...
+﻿  HelperStructs.cpp
   GPP_Framework.vcxproj -> D:\Github\NavigationMeshGeneration\_FRAMEWORK\bin\Debug\GPP_Framework.exe
   0 File(s) copied
